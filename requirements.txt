@@ -1,0 +1,11 @@
+tensorflow
+numpy
+pandas
+scikit-learn
+joblib
+opencv-python
+matplotlib
+shap
+streamlit
+groq
+Pillow
