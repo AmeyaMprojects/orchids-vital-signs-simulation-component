@@ -93,6 +93,25 @@ def gated_fusion(P_img, P_vitals):
     return final_score, w_img, w_vitals, img_conf, gate_message
 
 # =========================================================
+# SYSTEM TRUST SCORE
+# =========================================================
+def system_trust_score(P_img, P_vitals):
+    """
+    Measures agreement + confidence between models.
+    Returns value between 0 and 1.
+    """
+    agreement = 1 - abs(P_img - P_vitals)
+
+    img_conf = abs(P_img - 0.5) * 2
+    vitals_conf = abs(P_vitals - 0.5) * 2
+
+    combined_conf = (img_conf + vitals_conf) / 2
+
+    trust = agreement * combined_conf
+
+    return float(np.clip(trust, 0, 1))
+
+# =========================================================
 # INPUTS
 # =========================================================
 img_path = r"C:\Users\Arun\Downloads\Lovelace\archive\chest_xray\test\PNEUMONIA\person1_virus_7.jpeg"
@@ -119,6 +138,7 @@ img_conf = image_confidence(P_img)
 abnormalities = age_adjusted_abnormalities(vitals_input)
 
 final_score, w_img, w_vitals, img_conf, gate_msg = gated_fusion(P_img, P_vitals)
+trust_score = system_trust_score(P_img, P_vitals)
 risk, recommendation = triage_level(final_score)
 
 # =========================================================
@@ -136,6 +156,11 @@ print("\nFUSION WEIGHTS")
 print("────────────────────")
 print(f"Imaging Evidence : {int(w_img*100)}%")
 print(f"Vitals Evidence  : {int(w_vitals*100)}%")
+
+print("\nSYSTEM TRUST SCORE")
+print("────────────────────")
+print(f"Trust Score : {trust_score:.2f} ({int(trust_score*100)}%)")
+print(f"Interpretation: {'High agreement & confidence' if trust_score > 0.7 else 'Moderate agreement' if trust_score > 0.4 else 'Low agreement - review inputs'}")
 
 print("\nFINAL RISK SCORE")
 print("────────────────────")

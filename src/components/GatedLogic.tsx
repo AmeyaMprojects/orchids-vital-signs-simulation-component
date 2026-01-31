@@ -128,9 +128,24 @@ export default function GatedLogic() {
     return { finalScore, w_img, w_vitals, img_conf, gateMessage };
   };
 
+  const systemTrustScore = (P_img: number, P_vitals: number): number => {
+    // Measures agreement + confidence between models
+    const agreement = 1 - Math.abs(P_img - P_vitals);
+
+    const img_conf = Math.abs(P_img - 0.5) * 2;
+    const vitals_conf = Math.abs(P_vitals - 0.5) * 2;
+
+    const combined_conf = (img_conf + vitals_conf) / 2;
+
+    const trust = agreement * combined_conf;
+
+    return Math.max(0, Math.min(1, trust));
+  };
+
   // Calculate all values
   const P_vitals = calculateVitalsProbability();
   const { finalScore, w_img, w_vitals, img_conf, gateMessage } = gatedFusion(imagingProbability, P_vitals);
+  const trustScore = systemTrustScore(imagingProbability, P_vitals);
   const abnormalities = ageAdjustedAbnormalities();
   const triage = triageLevel(finalScore);
 
@@ -191,6 +206,27 @@ export default function GatedLogic() {
               </div>
               <div className="mt-4 p-3 bg-white rounded-xl">
                 <p className="text-xs text-indigo-700 italic">{gateMessage}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* System Trust Score */}
+          <div className="bg-purple-50 rounded-3xl p-6 border-2 border-purple-200">
+            <h3 className="text-lg font-bold mb-4 text-purple-900">SYSTEM TRUST SCORE</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-purple-700 font-semibold">Trust Score:</span>
+                <span className="font-bold text-purple-900 text-2xl">{trustScore.toFixed(2)} ({(trustScore * 100).toFixed(0)}%)</span>
+              </div>
+              <div className="mt-4 p-3 bg-white rounded-xl">
+                <p className="text-xs text-purple-700">
+                  <strong>Interpretation:</strong>{" "}
+                  {trustScore > 0.7
+                    ? "High agreement & confidence"
+                    : trustScore > 0.4
+                    ? "Moderate agreement"
+                    : "Low agreement - review inputs"}
+                </p>
               </div>
             </div>
           </div>
