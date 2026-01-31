@@ -1,3 +1,7 @@
+import sys
+import json
+import warnings
+warnings.filterwarnings('ignore')
 import joblib
 import shap
 import pandas as pd
@@ -50,21 +54,6 @@ FEATURE_EXPLANATIONS = {
     }
 }
 
-vitals_input = {
-    "Temperature_C": 38.2,
-    "Temperature_trend": 0.7,
-    "SpO2_percent": 92,
-    "SpO2_trend": -2.5,
-    "HeartRate_bpm": 130,
-    "HeartRate_trend": 10,
-    "RespRate_bpm": 38,
-    "RespRate_trend": 8,
-    "Cough": 1,
-    "Retractions": 1
-}
-
-MODEL_PATH = r"models\vitals_model.pkl"
-
 FEATURE_COLUMNS = [
     "Temperature_C", "Temperature_trend",
     "SpO2_percent", "SpO2_trend",
@@ -73,22 +62,39 @@ FEATURE_COLUMNS = [
     "Cough", "Retractions"
 ]
 
+PEDIATRIC_NORMALS = {
+    "infant": {
+        "HeartRate_bpm": (100, 160),
+        "RespRate_bpm": (30, 60)
+    },
+    "toddler": {
+        "HeartRate_bpm": (90, 150),
+        "RespRate_bpm": (24, 40)
+    },
+    "preschool": {
+        "HeartRate_bpm": (80, 120),
+        "RespRate_bpm": (22, 34)
+    },
+    "child": {
+        "HeartRate_bpm": (70, 110),
+        "RespRate_bpm": (18, 30)
+    }
+}
+
 # ----------------------------
 # LOAD MODEL (once)
 # ----------------------------
 
-vitals_model = joblib.load(MODEL_PATH)
+import os
+model_path = os.path.join(os.path.dirname(__file__), "vitals_model.pkl")
+vitals_model = joblib.load(model_path)
 
 scaler = vitals_model.named_steps["scaler"]
 clf = vitals_model.named_steps["clf"]
 
-# SHAP explainer (Logistic Regression → LinearExplainer)
-# Create background data for masker (VERY IMPORTANT)
-# Use zeros or training mean – zeros are fine after scaling
+# SHAP explainer
 background = np.zeros((1, len(FEATURE_COLUMNS)))
-
 masker = shap.maskers.Independent(background)
-
 explainer = shap.LinearExplainer(
     clf,
     masker=masker,
@@ -96,32 +102,11 @@ explainer = shap.LinearExplainer(
 )
 
 # ----------------------------
-# PEDIATRIC AGE NORMAL RANGES
+# HELPER FUNCTIONS
 # ----------------------------
 
-PEDIATRIC_NORMALS = {
-    "infant": {          # 0–1 year
-        "HeartRate_bpm": (100, 160),
-        "RespRate_bpm": (30, 60)
-    },
-    "toddler": {         # 1–3 years
-        "HeartRate_bpm": (90, 150),
-        "RespRate_bpm": (24, 40)
-    },
-    "preschool": {       # 4–6 years
-        "HeartRate_bpm": (80, 120),
-        "RespRate_bpm": (22, 34)
-    },
-    "child": {           # 7–12 years
-        "HeartRate_bpm": (70, 110),
-        "RespRate_bpm": (18, 30)
-    }
-}
-
 def age_adjusted_interpretation(vitals_dict, age_group):
-    """
-    Returns age-adjusted interpretation of vitals
-    """
+    """Returns age-adjusted interpretation of vitals"""
     normals = PEDIATRIC_NORMALS[age_group]
     interpretation = {}
 
@@ -130,20 +115,20 @@ def age_adjusted_interpretation(vitals_dict, age_group):
 
     interpretation["HeartRate"] = (
         "High for age" if vitals_dict["HeartRate_bpm"] > hr_high else
+        "Low for age" if vitals_dict["HeartRate_bpm"] < hr_low else
         "Normal for age"
     )
 
     interpretation["RespRate"] = (
         "High for age" if vitals_dict["RespRate_bpm"] > rr_high else
+        "Low for age" if vitals_dict["RespRate_bpm"] < rr_low else
         "Normal for age"
     )
 
     return interpretation
 
 def interpret_shap_contributors(top_contributors):
-    """
-    Converts SHAP top contributors into human-readable explanations
-    """
+    """Converts SHAP top contributors into human-readable explanations"""
     explanations = []
 
     for item in top_contributors:
@@ -154,34 +139,20 @@ def interpret_shap_contributors(top_contributors):
             continue
 
         if contribution > 0:
-            explanations.append(
-                FEATURE_EXPLANATIONS[feature]["risk_up"]
-            )
+            explanations.append(FEATURE_EXPLANATIONS[feature]["risk_up"])
         else:
-            explanations.append(
-                FEATURE_EXPLANATIONS[feature]["risk_down"]
-            )
+            explanations.append(FEATURE_EXPLANATIONS[feature]["risk_down"])
 
     return explanations
 
-# ----------------------------
-# SHAP EXPLANATION FUNCTION
-# ----------------------------
-
 def explain_vitals(vitals_dict, age_group):
     """
-    vitals_dict: dict with all vitals (single patient)
-
-    Returns:
-    - probability
-    - top contributing features (signed)
-    - shap values (raw)
+    Main function to analyze vitals and return risk assessment
     """
-
     # Convert input to DataFrame
     X = pd.DataFrame([vitals_dict])[FEATURE_COLUMNS]
 
-    # Scale features (must match training)
+    # Scale features
     X_scaled = scaler.transform(X)
 
     # Predict probability
@@ -189,7 +160,6 @@ def explain_vitals(vitals_dict, age_group):
 
     # Compute SHAP values
     shap_values = explainer.shap_values(X_scaled)
-
     shap_vals = shap_values[0]
     shap_dict = dict(zip(FEATURE_COLUMNS, shap_vals))
 
@@ -210,35 +180,54 @@ def explain_vitals(vitals_dict, age_group):
     ]
     
     human_explanations = interpret_shap_contributors(top_features)
-
-        # ----------------------------
-    # AGE-ADJUSTED INTERPRETATION
-    # ----------------------------
     age_flags = age_adjusted_interpretation(vitals_dict, age_group)
 
     return {
-    "vitals_probability": float(prob),
-    "top_contributors": top_features,
-    "risk_factors_text": human_explanations,
-    "age_adjusted_flags": age_flags,
-    "shap_values": shap_dict
+        "vitals_probability": float(prob),
+        "top_contributors": top_features,
+        "risk_factors_text": human_explanations,
+        "age_adjusted_flags": age_flags,
+        "shap_values": shap_dict
     }
 
+# ----------------------------
+# MAIN (API ENTRY POINT)
+# ----------------------------
 
-
-vitals_input = {
-    "Temperature_C": 38.2,
-    "Temperature_trend": 0.7,
-    "SpO2_percent": 92,
-    "SpO2_trend": -2.5,
-    "HeartRate_bpm": 130,
-    "HeartRate_trend": 10,
-    "RespRate_bpm": 38,
-    "RespRate_trend": 8,
-    "Cough": 1,
-    "Retractions": 1
-}
-age_group = "preschool"   # infant | toddler | preschool | child
-
-shap_result = explain_vitals(vitals_input, age_group)
-print(shap_result)
+if __name__ == "__main__":
+    try:
+        # Read JSON input from file (to avoid Windows command-line escaping issues)
+        if len(sys.argv) > 1:
+            input_path = sys.argv[1]
+            
+            # If it's a file path, read from file
+            if input_path.endswith('.json'):
+                with open(input_path, 'r') as f:
+                    input_data = json.load(f)
+            else:
+                # Otherwise, treat as JSON string (for backward compatibility)
+                input_data = json.loads(input_path)
+        else:
+            raise ValueError("No input provided")
+        
+        vitals_dict = input_data["vitals"]
+        age_group = input_data["age_group"]
+        
+        # Analyze vitals
+        result = explain_vitals(vitals_dict, age_group)
+        
+        # Output JSON result
+        print(json.dumps(result))
+        
+    except Exception as e:
+        import traceback
+        error_result = {
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "vitals_probability": 0,
+            "top_contributors": [],
+            "risk_factors_text": [],
+            "age_adjusted_flags": {}
+        }
+        print(json.dumps(error_result))
+        sys.exit(1)
