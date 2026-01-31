@@ -155,8 +155,18 @@ def explain_vitals(vitals_dict, age_group):
     # Scale features
     X_scaled = scaler.transform(X)
 
-    # Predict probability
-    prob = clf.predict_proba(X_scaled)[0][1]
+    # Predict probability - handle different sklearn versions
+    try:
+        prob = clf.predict_proba(X_scaled)[0][1]
+    except AttributeError:
+        # If multi_class attribute doesn't exist, try direct prediction
+        try:
+            prob = clf.predict_proba(X_scaled)[0][1]
+        except:
+            # Fallback: use decision_function if available
+            decision = clf.decision_function(X_scaled)[0]
+            # Convert decision function to probability (sigmoid)
+            prob = 1 / (1 + np.exp(-decision))
 
     # Compute SHAP values
     shap_values = explainer.shap_values(X_scaled)
@@ -231,3 +241,5 @@ if __name__ == "__main__":
         }
         print(json.dumps(error_result))
         sys.exit(1)
+
+

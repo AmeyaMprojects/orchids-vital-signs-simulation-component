@@ -113,24 +113,162 @@ interface RiskAnalysis {
 export default function VitalSignsSimulator() {
   const { setVitals: setContextVitals } = useVitalsContext();
   
-  const [vitals, setVitals] = useState<Vitals>({
-    temp: 38,
-    spo2: 94,
-    hr: 110,
-    rr: 32,
-    cough: 0,
-    retractions: 0,
+  // Initialize state with a function to avoid hydration issues
+  const [vitals, setVitals] = useState<Vitals>(() => {
+    if (typeof window === 'undefined') {
+      return {
+        temp: 38,
+        spo2: 94,
+        hr: 110,
+        rr: 32,
+        cough: 0,
+        retractions: 0,
+      };
+    }
+    
+    const saved = localStorage.getItem('simulatorVitals');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load saved vitals:', e);
+      }
+    }
+    
+    return {
+      temp: 38,
+      spo2: 94,
+      hr: 110,
+      rr: 32,
+      cough: 0,
+      retractions: 0,
+    };
   });
-  const [trends, setTrends] = useState<VitalTrends>({
-    temp: 0,
-    spo2: 0,
-    hr: 0,
-    rr: 0,
+
+  const [trends, setTrends] = useState<VitalTrends>(() => {
+    if (typeof window === 'undefined') {
+      return {
+        temp: 0,
+        spo2: 0,
+        hr: 0,
+        rr: 0,
+      };
+    }
+    
+    const saved = localStorage.getItem('simulatorTrends');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load saved trends:', e);
+      }
+    }
+    
+    return {
+      temp: 0,
+      spo2: 0,
+      hr: 0,
+      rr: 0,
+    };
   });
-  const [ageGroup, setAgeGroup] = useState<keyof typeof PEDIATRIC_NORMALS>("preschool");
+
+  const [ageGroup, setAgeGroup] = useState<keyof typeof PEDIATRIC_NORMALS>(() => {
+    if (typeof window === 'undefined') {
+      return 'preschool';
+    }
+    
+    const saved = localStorage.getItem('simulatorAgeGroup');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed in PEDIATRIC_NORMALS) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Failed to load saved age group:', e);
+      }
+    }
+    
+    return 'preschool';
+  });
+
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Hydration check
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Listen for visibility changes to reload data when tab regains focus
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Tab regained focus - reload from localStorage
+        const savedVitals = localStorage.getItem('simulatorVitals');
+        const savedTrends = localStorage.getItem('simulatorTrends');
+        const savedAgeGroup = localStorage.getItem('simulatorAgeGroup');
+
+        if (savedVitals) {
+          try {
+            setVitals(JSON.parse(savedVitals));
+            console.log('Reloaded vitals from localStorage');
+          } catch (e) {
+            console.error('Failed to reload vitals:', e);
+          }
+        }
+
+        if (savedTrends) {
+          try {
+            setTrends(JSON.parse(savedTrends));
+            console.log('Reloaded trends from localStorage');
+          } catch (e) {
+            console.error('Failed to reload trends:', e);
+          }
+        }
+
+        if (savedAgeGroup) {
+          try {
+            const parsed = JSON.parse(savedAgeGroup);
+            if (parsed in PEDIATRIC_NORMALS) {
+              setAgeGroup(parsed);
+              console.log('Reloaded age group from localStorage');
+            }
+          } catch (e) {
+            console.error('Failed to reload age group:', e);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isHydrated]);
+
+  // Save vitals to localStorage whenever they change
+  useEffect(() => {
+    if (!isHydrated) return;
+    localStorage.setItem('simulatorVitals', JSON.stringify(vitals));
+    console.log('Saved vitals:', vitals);
+  }, [vitals, isHydrated]);
+
+  // Save trends to localStorage whenever they change
+  useEffect(() => {
+    if (!isHydrated) return;
+    localStorage.setItem('simulatorTrends', JSON.stringify(trends));
+    console.log('Saved trends:', trends);
+  }, [trends, isHydrated]);
+
+  // Save age group to localStorage whenever it changes
+  useEffect(() => {
+    if (!isHydrated) return;
+    localStorage.setItem('simulatorAgeGroup', JSON.stringify(ageGroup));
+    console.log('Saved age group:', ageGroup);
+  }, [ageGroup, isHydrated]);
 
   useEffect(() => {
     // Update context with current vitals
@@ -513,4 +651,5 @@ export default function VitalSignsSimulator() {
     </div>
   );
 }
+
 
