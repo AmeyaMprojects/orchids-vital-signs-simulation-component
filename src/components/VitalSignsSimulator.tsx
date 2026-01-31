@@ -229,117 +229,474 @@ export default function VitalSignsSimulator() {
       return <Minus className="w-5 h-5 text-zinc-400" />;
     };
 
-    return (
-      <motion.div 
-        className="space-y-3 bg-zinc-50 rounded-2xl p-6 border border-zinc-200"
-        initial={{ scale: 0.98 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2 text-zinc-700 font-medium">
-            {icon}
-            <span>{label}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            {getTrendIcon()}
-            <motion.div 
-              className="text-zinc-900 font-bold tabular-nums text-2xl"
-              key={value}
-              initial={{ scale: 1.2, color: "#4f46e5" }}
-              animate={{ scale: 1, color: "#18181b" }}
-              transition={{ duration: 0.5 }}
-            >
-              {key === 'cough' || key === 'retractions' 
-                ? `${(value * 100).toFixed(0)}%` 
-                : `${value.toFixed(1)}${config.unit}`}
-            </motion.div>
-          </div>
-        </div>
-        <div className="flex justify-between text-xs text-zinc-500">
-          <span>Normal: {key === 'cough' || key === 'retractions' 
-            ? `${(SCENARIO_LIMITS.NORMAL[key].min * 100).toFixed(0)}-${(SCENARIO_LIMITS.NORMAL[key].max * 100).toFixed(0)}%`
-            : `${SCENARIO_LIMITS.NORMAL[key].min}-${SCENARIO_LIMITS.NORMAL[key].max}${config.unit}`}
-          </span>
-        </div>
-      </motion.div>
-    );
-  };
-
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 md:p-8 bg-white rounded-3xl shadow-2xl shadow-indigo-100/50 border border-zinc-100 overflow-hidden">
-      <div className="mb-10">
-        <h2 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-          <Stethoscope className="text-indigo-600 w-7 h-7" />
-          Live Vital Signs Monitor
-        </h2>
-        <p className="text-zinc-500 mt-1">Real-time streaming vital signs data with trend indicators.</p>
-      </div>
+    <>
+      <style>{`
+        .vital-simulator {
+          font-family: system-ui, sans-serif;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 24px;
+          background: #f8fafc;
+          min-height: 100vh;
+        }
+        h1 { 
+          text-align: center; 
+          color: #1e40af; 
+          margin-bottom: 32px;
+          font-size: 2.5rem;
+        }
+        .card {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+          padding: 24px;
+          margin-bottom: 32px;
+        }
+        .age-select-wrapper { 
+          margin-bottom: 28px;
+          background: #f0f9ff;
+          padding: 20px;
+          border-radius: 12px;
+          border: 2px solid #2563eb;
+        }
+        .age-select-wrapper label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 8px;
+          color: #1f2937;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        select, .yes-no-select {
+          padding: 10px 16px;
+          font-size: 1.05rem;
+          border-radius: 8px;
+          border: 2px solid #d1d5db;
+          width: 100%;
+          max-width: 340px;
+          background: white;
+          font-weight: 500;
+        }
+        select:focus {
+          outline: none;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .sliders-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 24px 32px;
+        }
+        .slider-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .slider-group label {
+          font-weight: 600;
+          color: #1f2937;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .value-display {
+          color: #dc2626;
+          font-weight: bold;
+          min-width: 70px;
+          text-align: right;
+        }
+        input[type="range"] {
+          width: 100%;
+          height: 8px;
+          accent-color: #3b82f6;
+          border-radius: 4px;
+        }
+        .calculate-btn {
+          display: block;
+          margin: 32px auto;
+          padding: 16px 48px;
+          font-size: 1.3rem;
+          font-weight: 700;
+          color: white;
+          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.3s;
+          box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+        .calculate-btn:hover { 
+          background: linear-gradient(135deg, #1d4ed8, #1e40af);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+        .calculate-btn:active {
+          transform: translateY(0);
+        }
+        .calculate-btn:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+        .result-card {
+          background: linear-gradient(135deg, #f0f9ff, #dbeafe);
+          border-left: 6px solid #2563eb;
+          border-radius: 12px;
+          padding: 32px;
+          margin-top: 24px;
+        }
+        .probability-display {
+          font-size: 4.5rem;
+          font-weight: 800;
+          background: linear-gradient(135deg, #b91c1c, #dc2626);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          text-align: center;
+          margin: 20px 0;
+          text-shadow: 0 2px 10px rgba(220, 38, 38, 0.2);
+        }
+        .contributors h3 { 
+          margin-top: 0; 
+          color: #1e40af;
+          font-size: 1.3rem;
+          margin-bottom: 16px;
+        }
+        .contributor-item {
+          background: white;
+          padding: 16px 20px;
+          margin: 12px 0;
+          border-radius: 10px;
+          border-left: 5px solid #3b82f6;
+          line-height: 1.5;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          transition: transform 0.2s;
+        }
+        .contributor-item:hover {
+          transform: translateX(5px);
+        }
+        .flags {
+          margin-top: 32px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+          justify-content: center;
+        }
+        .flag {
+          background: #10b981;
+          color: white;
+          padding: 10px 20px;
+          border-radius: 999px;
+          font-size: 1rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .flag.warning { 
+          background: #f59e0b;
+          color: #fff;
+        }
+        footer {
+          text-align: center;
+          color: #6b7280;
+          margin-top: 40px;
+          font-size: 0.9rem;
+          padding: 24px;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .loading-container {
+          text-align: center;
+          padding: 32px;
+          color: #2563eb;
+          font-weight: 600;
+          font-size: 1.1rem;
+        }
+        .error-container {
+          text-align: center;
+          padding: 24px;
+          background: #fee2e2;
+          color: #b91c1c;
+          border-radius: 12px;
+          margin: 24px 0;
+          border: 2px solid #fecaca;
+        }
+        @media (max-width: 600px) { 
+          .sliders-grid { grid-template-columns: 1fr; }
+          .probability-display { font-size: 3.5rem; }
+        }
+      `}</style>
 
-      <div className="grid grid-cols-1 gap-4 mb-10">
-        {renderVitalCard("Temperature", "temp", <Thermometer className="w-5 h-5 text-orange-500" />)}
-        {renderVitalCard("SpO₂ (Oxygen)", "spo2", <Droplets className="w-5 h-5 text-blue-500" />)}
-        {renderVitalCard("Heart Rate", "hr", <Activity className="w-5 h-5 text-rose-500" />)}
-        {renderVitalCard("Respiratory Rate", "rr", <Wind className="w-5 h-5 text-cyan-500" />)}
-        {renderVitalCard("Cough Probability", "cough", <Info className="w-5 h-5 text-purple-500" />)}
-        {renderVitalCard("Chest Retractions", "retractions", <AlertCircle className="w-5 h-5 text-amber-500" />)}
-      </div>
+      <div className="vital-simulator">
+        <h1>🩺 Pediatric Pneumonia Risk Analyzer</h1>
 
-      <div className="flex flex-col items-center gap-8">
-        <AnimatePresence mode="wait">
-          {result && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              className={cn(
-                "w-full p-8 rounded-3xl border-2 flex flex-col md:flex-row items-center gap-6",
-                result.color
-              )}
+        <div className="card">
+          <h2 style={{ color: '#1e40af', marginBottom: '24px' }}>Patient Vitals</h2>
+
+          <div className="age-select-wrapper">
+            <label htmlFor="ageGroup">
+              <Users size={20} />
+              Patient Age Group
+            </label>
+            <select
+              id="ageGroup"
+              value={ageGroup}
+              onChange={(e) => setAgeGroup(e.target.value as typeof ageGroup)}
             >
-              <div className="bg-white p-4 rounded-2xl shadow-sm">
-                {result.icon}
-              </div>
-              <div className="text-center md:text-left space-y-2">
-                <h3 className="text-xl font-extrabold uppercase tracking-tight">{result.status} PATTERN</h3>
-                <p className="text-lg leading-relaxed font-medium opacity-90">{result.message}</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <option value="infant">👶 Infant (0–1 year)</option>
+              <option value="toddler">🧒 Toddler (1–3 years)</option>
+              <option value="preschool">👧 Preschool (4–6 years)</option>
+              <option value="child">👦 Child (7–12 years)</option>
+            </select>
+          </div>
 
-        <div className="flex items-center gap-3 p-4 bg-zinc-50 rounded-2xl text-zinc-500 text-xs border border-zinc-100 italic">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <p>
-            DISCLAIMER: This simulation is for educational purposes only. Diagnosis must be made by a qualified healthcare professional.
-          </p>
+          <div className="sliders-grid">
+            {/* Temperature */}
+            <div className="slider-group">
+              <label>
+                🌡️ Temperature (°C)
+                <span className="value-display">{vitals.Temperature_C.toFixed(1)}</span>
+              </label>
+              <input
+                type="range"
+                min={35.0}
+                max={41.0}
+                step={0.1}
+                value={vitals.Temperature_C}
+                onChange={(e) => setVitals(p => ({ ...p, Temperature_C: +e.target.value }))}
+              />
+            </div>
+
+            <div className="slider-group">
+              <label>
+                📈 Temperature Trend (°C/min)
+                <span className="value-display">
+                  {vitals.Temperature_trend >= 0 ? "+" : ""}{vitals.Temperature_trend.toFixed(1)}
+                </span>
+              </label>
+              <input
+                type="range"
+                min={-1.5}
+                max={2.0}
+                step={0.1}
+                value={vitals.Temperature_trend}
+                onChange={(e) => setVitals(p => ({ ...p, Temperature_trend: +e.target.value }))}
+              />
+            </div>
+
+            {/* SpO2 */}
+            <div className="slider-group">
+              <label>
+                💉 SpO₂ (%)
+                <span className="value-display">{vitals.SpO2_percent}</span>
+              </label>
+              <input
+                type="range"
+                min={80}
+                max={100}
+                step={1}
+                value={vitals.SpO2_percent}
+                onChange={(e) => setVitals(p => ({ ...p, SpO2_percent: +e.target.value }))}
+              />
+            </div>
+
+            <div className="slider-group">
+              <label>
+                📉 SpO₂ Trend (%/min)
+                <span className="value-display">
+                  {vitals.SpO2_trend >= 0 ? "+" : ""}{vitals.SpO2_trend.toFixed(1)}
+                </span>
+              </label>
+              <input
+                type="range"
+                min={-8}
+                max={3}
+                step={0.5}
+                value={vitals.SpO2_trend}
+                onChange={(e) => setVitals(p => ({ ...p, SpO2_trend: +e.target.value }))}
+              />
+            </div>
+
+            {/* Heart Rate */}
+            <div className="slider-group">
+              <label>
+                ❤️ Heart Rate (bpm)
+                <span className="value-display">{vitals.HeartRate_bpm}</span>
+              </label>
+              <input
+                type="range"
+                min={60}
+                max={180}
+                step={1}
+                value={vitals.HeartRate_bpm}
+                onChange={(e) => setVitals(p => ({ ...p, HeartRate_bpm: +e.target.value }))}
+              />
+            </div>
+
+            <div className="slider-group">
+              <label>
+                ⚡ Heart Rate Trend (bpm/min)
+                <span className="value-display">
+                  {vitals.HeartRate_trend >= 0 ? "+" : ""}{vitals.HeartRate_trend}
+                </span>
+              </label>
+              <input
+                type="range"
+                min={-15}
+                max={25}
+                step={1}
+                value={vitals.HeartRate_trend}
+                onChange={(e) => setVitals(p => ({ ...p, HeartRate_trend: +e.target.value }))}
+              />
+            </div>
+
+            {/* Resp Rate */}
+            <div className="slider-group">
+              <label>
+                🫁 Resp Rate (breaths/min)
+                <span className="value-display">{vitals.RespRate_bpm}</span>
+              </label>
+              <input
+                type="range"
+                min={12}
+                max={60}
+                step={1}
+                value={vitals.RespRate_bpm}
+                onChange={(e) => setVitals(p => ({ ...p, RespRate_bpm: +e.target.value }))}
+              />
+            </div>
+
+            <div className="slider-group">
+              <label>
+                📊 Resp Rate Trend
+                <span className="value-display">
+                  {vitals.RespRate_trend >= 0 ? "+" : ""}{vitals.RespRate_trend}
+                </span>
+              </label>
+              <input
+                type="range"
+                min={-10}
+                max={20}
+                step={1}
+                value={vitals.RespRate_trend}
+                onChange={(e) => setVitals(p => ({ ...p, RespRate_trend: +e.target.value }))}
+              />
+            </div>
+
+            {/* Yes/No Dropdowns */}
+            <div className="slider-group">
+              <label>🤧 Cough</label>
+              <select
+                className="yes-no-select"
+                value={vitals.Cough}
+                onChange={(e) => setVitals(p => ({ ...p, Cough: +e.target.value }))}
+              >
+                <option value={0}>No</option>
+                <option value={1}>Yes</option>
+              </select>
+            </div>
+
+            <div className="slider-group">
+              <label>⚠️ Retractions</label>
+              <select
+                className="yes-no-select"
+                value={vitals.Retractions}
+                onChange={(e) => setVitals(p => ({ ...p, Retractions: +e.target.value }))}
+              >
+                <option value={0}>No</option>
+                <option value={1}>Yes</option>
+              </select>
+            </div>
+          </div>
+
+          <button 
+            className="calculate-btn" 
+            onClick={handleCalculate}
+            disabled={isLoading}
+          >
+            {isLoading ? '🔄 Analyzing...' : '🧠 Calculate Pneumonia Risk'}
+          </button>
         </div>
 
-        <AnimatePresence>
-          {lastLog && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="w-full mt-4"
-            >
-              <div className="bg-zinc-900 rounded-2xl p-6 overflow-hidden shadow-inner border border-zinc-800">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-zinc-400 text-xs font-mono uppercase tracking-widest">Live Streaming Data (JSON)</span>
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-red-500/50" />
-                    <div className="w-2 h-2 rounded-full bg-amber-500/50" />
-                    <div className="w-2 h-2 rounded-full bg-emerald-500/50" />
-                  </div>
-                </div>
-                <pre className="text-emerald-400 font-mono text-sm overflow-x-auto selection:bg-emerald-500/20">
-                  {JSON.stringify(lastLog, null, 2)}
-                </pre>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
+        {isLoading && (
+          <div className="loading-container">
+            <Loader2 size={48} className="animate-spin mb-4" />
+            Analyzing vitals with SHAP model...
+          </div>
+        )}
 
+        {error && (
+          <div className="error-container">
+            <AlertTriangle size={24} style={{ marginBottom: '8px' }} />
+            {error}
+          </div>
+        )}
+
+        {showResults && predictionResult && (
+          <div className="card result-card">
+            <h2 style={{ color: '#1e40af', textAlign: 'center', marginBottom: '16px' }}>
+              Estimated Pneumonia Probability
+            </h2>
+            <div className="probability-display">
+              {(predictionResult.vitals_probability * 100).toFixed(1)}%
+            </div>
+
+            <div className="contributors">
+              <h3>🔍 Top Contributing Factors</h3>
+              {predictionResult.risk_factors_text && predictionResult.risk_factors_text.length > 0 ? (
+                predictionResult.risk_factors_text.map((text: string, i: number) => (
+                  <div key={i} className="contributor-item">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ 
+                        display: 'inline-block', 
+                        width: '8px', 
+                        height: '8px', 
+                        borderRadius: '50%', 
+                        backgroundColor: '#3b82f6' 
+                      }} />
+                      {text}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: '#4b5563', fontStyle: 'italic' }}>
+                  No strong contributing factors identified.
+                </p>
+              )}
+            </div>
+
+            <div className="flags">
+              <span className={`flag ${predictionResult.age_adjusted_flags.HeartRate.includes("High") ? "warning" : ""}`}>
+                ❤️ Heart Rate: {predictionResult.age_adjusted_flags.HeartRate}
+              </span>
+              <span className={`flag ${predictionResult.age_adjusted_flags.RespRate.includes("High") ? "warning" : ""}`}>
+                🫁 Respiratory Rate: {predictionResult.age_adjusted_flags.RespRate}
+              </span>
+              {predictionResult.vitals_probability >= 0.7 && (
+                <span className="flag warning">
+                  ⚠️ High Risk
+                </span>
+              )}
+              {predictionResult.vitals_probability < 0.3 && (
+                <span className="flag">
+                  ✅ Low Risk
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <footer>
+          🧠 Powered by SHAP Explainable AI • 🏥 For educational purposes only • 
+          Not for clinical use • Results are model-based predictions
+        </footer>
+      </div>
+    </>
+  );
+};
+
+export default VitalSignsSimulator;

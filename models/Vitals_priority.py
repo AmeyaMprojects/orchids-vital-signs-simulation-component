@@ -7,6 +7,49 @@ import numpy as np
 # CONFIG
 # ----------------------------
 
+FEATURE_EXPLANATIONS = {
+    "HeartRate_trend": {
+        "risk_up": "Increasing heart rate over time suggests physiological stress",
+        "risk_down": "Stable or decreasing heart rate reduces pneumonia concern"
+    },
+    "RespRate_trend": {
+        "risk_up": "Increasing respiratory rate indicates worsening breathing effort",
+        "risk_down": "Stable respiratory rate reduces respiratory distress concern"
+    },
+    "Temperature_trend": {
+        "risk_up": "Rising body temperature suggests worsening infection",
+        "risk_down": "Stable or falling temperature reduces infection concern"
+    },
+    "SpO2_trend": {
+        "risk_up": "Declining oxygen saturation over time indicates hypoxemia",
+        "risk_down": "Improving oxygen saturation reduces hypoxia concern"
+    },
+    "HeartRate_bpm": {
+        "risk_up": "Elevated heart rate contributes to pneumonia risk",
+        "risk_down": "Heart rate within normal range reduces risk"
+    },
+    "RespRate_bpm": {
+        "risk_up": "Elevated respiratory rate increases pneumonia risk",
+        "risk_down": "Respiratory rate within normal range reduces risk"
+    },
+    "Temperature_C": {
+        "risk_up": "Fever contributes to pneumonia suspicion",
+        "risk_down": "Normal body temperature reduces infection concern"
+    },
+    "SpO2_percent": {
+        "risk_up": "Low oxygen saturation increases pneumonia risk",
+        "risk_down": "Normal oxygen saturation reduces hypoxia concern"
+    },
+    "Cough": {
+        "risk_up": "Presence of cough supports respiratory infection",
+        "risk_down": "Absence of cough reduces respiratory infection concern"
+    },
+    "Retractions": {
+        "risk_up": "Chest retractions indicate increased work of breathing",
+        "risk_down": "No chest retractions reduce respiratory distress concern"
+    }
+}
+
 vitals_input = {
     "Temperature_C": 38.2,
     "Temperature_trend": 0.7,
@@ -20,7 +63,7 @@ vitals_input = {
     "Retractions": 1
 }
 
-MODEL_PATH = r"models\vitals_model.pkl"
+MODEL_PATH = r"C:\Users\Arun\Downloads\Lovelace\vitals_model.pkl"
 
 FEATURE_COLUMNS = [
     "Temperature_C", "Temperature_trend",
@@ -53,10 +96,79 @@ explainer = shap.LinearExplainer(
 )
 
 # ----------------------------
+# PEDIATRIC AGE NORMAL RANGES
+# ----------------------------
+
+PEDIATRIC_NORMALS = {
+    "infant": {          # 0–1 year
+        "HeartRate_bpm": (100, 160),
+        "RespRate_bpm": (30, 60)
+    },
+    "toddler": {         # 1–3 years
+        "HeartRate_bpm": (90, 150),
+        "RespRate_bpm": (24, 40)
+    },
+    "preschool": {       # 4–6 years
+        "HeartRate_bpm": (80, 120),
+        "RespRate_bpm": (22, 34)
+    },
+    "child": {           # 7–12 years
+        "HeartRate_bpm": (70, 110),
+        "RespRate_bpm": (18, 30)
+    }
+}
+
+def age_adjusted_interpretation(vitals_dict, age_group):
+    """
+    Returns age-adjusted interpretation of vitals
+    """
+    normals = PEDIATRIC_NORMALS[age_group]
+    interpretation = {}
+
+    hr_low, hr_high = normals["HeartRate_bpm"]
+    rr_low, rr_high = normals["RespRate_bpm"]
+
+    interpretation["HeartRate"] = (
+        "High for age" if vitals_dict["HeartRate_bpm"] > hr_high else
+        "Normal for age"
+    )
+
+    interpretation["RespRate"] = (
+        "High for age" if vitals_dict["RespRate_bpm"] > rr_high else
+        "Normal for age"
+    )
+
+    return interpretation
+
+def interpret_shap_contributors(top_contributors):
+    """
+    Converts SHAP top contributors into human-readable explanations
+    """
+    explanations = []
+
+    for item in top_contributors:
+        feature = item["feature"]
+        contribution = item["contribution"]
+
+        if feature not in FEATURE_EXPLANATIONS:
+            continue
+
+        if contribution > 0:
+            explanations.append(
+                FEATURE_EXPLANATIONS[feature]["risk_up"]
+            )
+        else:
+            explanations.append(
+                FEATURE_EXPLANATIONS[feature]["risk_down"]
+            )
+
+    return explanations
+
+# ----------------------------
 # SHAP EXPLANATION FUNCTION
 # ----------------------------
 
-def explain_vitals(vitals_dict):
+def explain_vitals(vitals_dict, age_group):
     """
     vitals_dict: dict with all vitals (single patient)
 
@@ -96,12 +208,23 @@ def explain_vitals(vitals_dict):
         }
         for name, value in sorted_features[:5]
     ]
+    
+    human_explanations = interpret_shap_contributors(top_features)
+
+        # ----------------------------
+    # AGE-ADJUSTED INTERPRETATION
+    # ----------------------------
+    age_flags = age_adjusted_interpretation(vitals_dict, age_group)
 
     return {
-        "vitals_probability": float(prob),
-        "top_contributors": top_features,
-        "shap_values": shap_dict
+    "vitals_probability": float(prob),
+    "top_contributors": top_features,
+    "risk_factors_text": human_explanations,
+    "age_adjusted_flags": age_flags,
+    "shap_values": shap_dict
     }
+
+
 
 vitals_input = {
     "Temperature_C": 38.2,
@@ -115,7 +238,7 @@ vitals_input = {
     "Cough": 1,
     "Retractions": 1
 }
+age_group = "preschool"   # infant | toddler | preschool | child
 
-shap_result = explain_vitals(vitals_input)
-
+shap_result = explain_vitals(vitals_input, age_group)
 print(shap_result)
