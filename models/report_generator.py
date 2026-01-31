@@ -125,9 +125,7 @@ def generate_clinical_report(
             # Fallback to structured summary if no API key
             return f"""Clinical Impression: {age_group} patient presenting with {risk_level} risk profile (score {final_score:.2f}).
 
-Key Rationale: Assessment based on vital signs trending and physiological indicators. Age-adjusted findings show {', '.join(f"{k}: {v}" for k, v in age_adjusted_flags.items())}.
-
-Immediate Clinical Focus: {next_steps_summary}"""
+Key Rationale: Assessment based on vital signs trending and physiological indicators. Age-adjusted findings show {', '.join(f"{k}: {v}" for k, v in age_adjusted_flags.items())}."""
         
         client = Groq(api_key=api_key)
         
@@ -168,7 +166,6 @@ TASK:
 Write a concise clinical summary including:
 1. Clinical Impression
 2. Key Rationale
-3. Immediate Clinical Focus
 
 CONSTRAINTS:
 - Under 120 words
@@ -176,6 +173,7 @@ CONSTRAINTS:
 - Do NOT mention AI, algorithms, or models
 - Do NOT describe anatomical locations or imaging regions
 - Do NOT introduce new medical actions
+- Do NOT include recommended actions or next steps in the summary
 """
 
         response = client.chat.completions.create(
@@ -199,9 +197,7 @@ CONSTRAINTS:
         # Fallback to structured summary
         return f"""Clinical Impression: {age_group} patient presenting with {risk_level} risk profile (score {final_score:.2f}).
 
-Key Rationale: Assessment based on vital signs trending and physiological indicators. Age-adjusted findings show {', '.join(f"{k}: {v}" for k, v in age_adjusted_flags.items())}.
-
-Immediate Clinical Focus: {next_steps_summary}"""
+Key Rationale: Assessment based on vital signs trending and physiological indicators. Age-adjusted findings show {', '.join(f"{k}: {v}" for k, v in age_adjusted_flags.items())}."""
 
 if __name__ == "__main__":
     try:
