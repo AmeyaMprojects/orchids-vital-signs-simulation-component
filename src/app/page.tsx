@@ -80,27 +80,6 @@ export default function Home() {
             </div>
           </Tabs.Content>
         </Tabs.Root>
-        
-        <section className="mt-20 grid md:grid-cols-3 gap-12 max-w-4xl mx-auto text-zinc-600">
-          <div>
-            <h3 className="font-bold text-zinc-900 mb-2">Visual Learning</h3>
-            <p className="text-sm leading-relaxed">
-              Help patients visualize how complex physiological data points connect to their health status.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-bold text-zinc-900 mb-2">Tablet Friendly</h3>
-            <p className="text-sm leading-relaxed">
-              Designed for touch interfaces, making it perfect for bedside consultations.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-bold text-zinc-900 mb-2">Clinical Scenarios</h3>
-            <p className="text-sm leading-relaxed">
-              Quickly switch between common clinical profiles like healthy state and pneumonia.
-            </p>
-          </div>
-        </section>
       </main>
     </div>
       </VitalsProvider>
