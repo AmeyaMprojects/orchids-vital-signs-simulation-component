@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useVitalsContext } from "@/contexts/VitalsContext";
+import WaterfallChart from "./WaterfallChart";
 
 interface VitalRange {
   min: number;
@@ -616,12 +617,6 @@ export default function VitalSignsSimulator() {
                           <span className="text-purple-800 font-medium text-sm">
                             {contributor.feature.replace(/_/g, ' ')}
                           </span>
-                          <span className={cn(
-                            "text-xs font-bold",
-                            contributor.contribution > 0 ? "text-red-600" : "text-green-600"
-                          )}>
-                            {contributor.contribution > 0 ? '+' : ''}{contributor.contribution.toFixed(3)}
-                          </span>
                         </div>
                         <div className="w-full bg-zinc-200 rounded-full h-2 overflow-hidden">
                           <div
@@ -637,6 +632,11 @@ export default function VitalSignsSimulator() {
                   ))}
                 </div>
               </div>
+
+              {/* Waterfall Chart */}
+              {riskAnalysis.waterfall && (
+                <WaterfallChart data={riskAnalysis.waterfall} />
+              )}
             </motion.div>
           )}
         </AnimatePresence>

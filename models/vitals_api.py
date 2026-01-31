@@ -145,6 +145,37 @@ def interpret_shap_contributors(top_contributors):
 
     return explanations
 
+def generate_waterfall_data(shap_values, base_value, expected_value):
+    """
+    Generate waterfall chart data from SHAP values
+    Returns data structure for waterfall visualization
+    """
+    # Sort features by absolute SHAP value
+    sorted_items = sorted(
+        shap_values.items(),
+        key=lambda x: abs(x[1]),
+        reverse=True
+    )[:8]  # Top 8 features for waterfall
+    
+    waterfall_data = []
+    cumulative = base_value
+    
+    for feature, value in sorted_items:
+        waterfall_data.append({
+            "feature": feature.replace("_", " "),
+            "value": float(value),
+            "start": float(cumulative),
+            "end": float(cumulative + value)
+        })
+        cumulative += value
+    
+    return {
+        "base_value": float(base_value),
+        "expected_value": float(expected_value),
+        "features": waterfall_data,
+        "final_value": float(cumulative)
+    }
+
 def explain_vitals(vitals_dict, age_group):
     """
     Main function to analyze vitals and return risk assessment
@@ -173,6 +204,9 @@ def explain_vitals(vitals_dict, age_group):
     shap_vals = shap_values[0]
     shap_dict = dict(zip(FEATURE_COLUMNS, shap_vals))
 
+    # Get base value (expected value from explainer)
+    base_value = explainer.expected_value
+    
     # Sort by absolute contribution
     sorted_features = sorted(
         shap_dict.items(),
@@ -191,13 +225,17 @@ def explain_vitals(vitals_dict, age_group):
     
     human_explanations = interpret_shap_contributors(top_features)
     age_flags = age_adjusted_interpretation(vitals_dict, age_group)
+    
+    # Generate waterfall data
+    waterfall = generate_waterfall_data(shap_dict, base_value, prob)
 
     return {
         "vitals_probability": float(prob),
         "top_contributors": top_features,
         "risk_factors_text": human_explanations,
         "age_adjusted_flags": age_flags,
-        "shap_values": shap_dict
+        "shap_values": shap_dict,
+        "waterfall": waterfall
     }
 
 # ----------------------------
