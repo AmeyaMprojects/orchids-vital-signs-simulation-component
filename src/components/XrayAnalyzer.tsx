@@ -17,6 +17,14 @@ export default function XrayAnalyzer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Feedback states
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [disagreeRisk, setDisagreeRisk] = useState(false);
+  const [disagreeImage, setDisagreeImage] = useState(false);
+  const [disagreeVitals, setDisagreeVitals] = useState(false);
+  const [feedbackNotes, setFeedbackNotes] = useState("");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -75,9 +83,45 @@ export default function XrayAnalyzer() {
     setPreviewUrl(null);
     setResult(null);
     setError(null);
+    setShowFeedback(false);
+    setDisagreeRisk(false);
+    setDisagreeImage(false);
+    setDisagreeVitals(false);
+    setFeedbackNotes("");
+    setFeedbackSubmitted(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleSubmitFeedback = () => {
+    const feedback = {
+      timestamp: new Date().toISOString(),
+      imagePath: selectedFile?.name || "",
+      imageProbability: result?.probability || 0,
+      vitalsInterpretation: "N/A", // Can be connected to vitals data if needed
+      triage_level: result?.label || "",
+      imageConfidence: result?.probability || 0,
+      disagreeRisk,
+      disagreeImage,
+      disagreeVitals,
+      notes: feedbackNotes,
+    };
+
+    console.log("Clinician Feedback:", JSON.stringify(feedback, null, 2));
+    
+    // Here you could send feedback to an API endpoint
+    // await fetch('/api/submit-feedback', { method: 'POST', body: JSON.stringify(feedback) });
+    
+    setFeedbackSubmitted(true);
+    setTimeout(() => {
+      setShowFeedback(false);
+      setFeedbackSubmitted(false);
+      setDisagreeRisk(false);
+      setDisagreeImage(false);
+      setDisagreeVitals(false);
+      setFeedbackNotes("");
+    }, 2000);
   };
 
   return (
@@ -225,6 +269,112 @@ export default function XrayAnalyzer() {
                     ? 'The AI model has detected patterns consistent with pneumonia. The heatmap shows areas of concern in red/orange.'
                     : 'The AI model indicates normal chest X-ray patterns. The heatmap shows minimal areas of concern in green/yellow.'}
                 </p>
+
+                {/* Feedback Section */}
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowFeedback(!showFeedback)}
+                    className="w-full px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold transition-all hover:bg-indigo-700 flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                    {showFeedback ? 'Hide Feedback' : 'Provide Clinical Feedback'}
+                  </button>
+
+                  <AnimatePresence>
+                    {showFeedback && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-4 space-y-4"
+                      >
+                        <div className="bg-white rounded-2xl p-6 border-2 border-indigo-100">
+                          <h4 className="text-lg font-bold text-zinc-900 mb-4 flex items-center gap-2">
+                            🩺 Clinician Feedback (Optional)
+                          </h4>
+
+                          <div className="space-y-3 mb-4">
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={disagreeRisk}
+                                onChange={(e) => setDisagreeRisk(e.target.checked)}
+                                className="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                              <span className="text-zinc-700 group-hover:text-zinc-900 font-medium">
+                                I disagree with the assigned risk level
+                              </span>
+                            </label>
+
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={disagreeImage}
+                                onChange={(e) => setDisagreeImage(e.target.checked)}
+                                className="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                              <span className="text-zinc-700 group-hover:text-zinc-900 font-medium">
+                                X-ray explanation may be misleading (artifact / quality issue)
+                              </span>
+                            </label>
+
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={disagreeVitals}
+                                onChange={(e) => setDisagreeVitals(e.target.checked)}
+                                className="w-5 h-5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                              <span className="text-zinc-700 group-hover:text-zinc-900 font-medium">
+                                Vitals interpretation seems incorrect
+                              </span>
+                            </label>
+                          </div>
+
+                          <div className="mb-4">
+                            <label className="block text-sm font-semibold text-zinc-700 mb-2">
+                              Additional notes (optional)
+                            </label>
+                            <textarea
+                              value={feedbackNotes}
+                              onChange={(e) => setFeedbackNotes(e.target.value)}
+                              className="w-full px-4 py-3 border border-zinc-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none font-sans"
+                              rows={3}
+                              placeholder="Enter any additional feedback or observations..."
+                            />
+                          </div>
+
+                          <button
+                            onClick={handleSubmitFeedback}
+                            className="w-full px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold transition-all hover:bg-emerald-700 flex items-center justify-center gap-2"
+                          >
+                            {feedbackSubmitted ? (
+                              <>
+                                <CheckCircle2 className="w-5 h-5" />
+                                Feedback Recorded!
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="w-5 h-5" />
+                                Submit Feedback
+                              </>
+                            )}
+                          </button>
+
+                          {feedbackSubmitted && (
+                            <motion.p
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="mt-3 text-sm text-emerald-600 text-center font-medium"
+                            >
+                              ✓ Feedback recorded. Thank you for helping improve the system.
+                            </motion.p>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </motion.div>
             )}
 
