@@ -142,10 +142,42 @@ export default function GatedLogic() {
     return Math.max(0, Math.min(1, trust));
   };
 
+  const getRiskFactors = (): string[] => {
+    const factors: string[] = [];
+    if (vitals.SpO2_percent < 95) factors.push("Low SpO2 (oxygen saturation)");
+    if (vitals.RespRate_bpm > 28) factors.push("Elevated respiratory rate");
+    if (vitals.HeartRate_bpm > 100) factors.push("Elevated heart rate");
+    if (vitals.Temperature_C > 38) factors.push("Fever");
+    if (vitals.Cough === 1) factors.push("Cough present");
+    if (vitals.Retractions === 1) factors.push("Chest retractions");
+    return factors;
+  };
+
+  const evidenceTriangulation = (P_img: number, vitals_probability: number, top_risk_factors: string[]): string => {
+    const imaging_support = P_img >= 0.75;
+    const vitals_support = vitals_probability >= 0.75;
+
+    const phys_distress = top_risk_factors.some(factor =>
+      /oxygen|spo2|respiratory|breathing/i.test(factor)
+    );
+
+    if (imaging_support && vitals_support && phys_distress) {
+      return "High-confidence detection: Imaging findings align with physiological distress indicators.";
+    } else if (imaging_support && vitals_support) {
+      return "Moderate-confidence detection: Imaging and physiological signals are concordant.";
+    } else if (imaging_support || vitals_support) {
+      return "Low-confidence detection: Partial agreement between evidence sources.";
+    } else {
+      return "No strong concordance between imaging and physiological indicators.";
+    }
+  };
+
   // Calculate all values
   const P_vitals = calculateVitalsProbability();
   const { finalScore, w_img, w_vitals, img_conf, gateMessage } = gatedFusion(imagingProbability, P_vitals);
   const trustScore = systemTrustScore(imagingProbability, P_vitals);
+  const riskFactors = getRiskFactors();
+  const triangulation = evidenceTriangulation(imagingProbability, P_vitals, riskFactors);
   const abnormalities = ageAdjustedAbnormalities();
   const triage = triageLevel(finalScore);
 
@@ -228,6 +260,29 @@ export default function GatedLogic() {
                     : "Low agreement - review inputs"}
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Evidence Triangulation */}
+          <div className="bg-cyan-50 rounded-3xl p-6 border-2 border-cyan-200">
+            <h3 className="text-lg font-bold mb-4 text-cyan-900">EVIDENCE TRIANGULATION</h3>
+            <div className="space-y-3">
+              <div className="p-4 bg-white rounded-xl">
+                <p className="text-sm text-cyan-900">{triangulation}</p>
+              </div>
+              {riskFactors.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-cyan-800 mb-2">Detected Risk Factors:</p>
+                  <ul className="space-y-1">
+                    {riskFactors.map((factor, idx) => (
+                      <li key={idx} className="text-xs text-cyan-700 flex items-start gap-2">
+                        <span className="text-cyan-500">•</span>
+                        <span>{factor}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
 
