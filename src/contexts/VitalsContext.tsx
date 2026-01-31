@@ -15,9 +15,27 @@ interface VitalsData {
   Retractions: number;
 }
 
+interface RiskAnalysis {
+  vitals_probability: number;
+  top_contributors: Array<{
+    feature: string;
+    contribution: number;
+  }>;
+  risk_factors_text: string[];
+  age_adjusted_flags: {
+    HeartRate: string;
+    RespRate: string;
+  };
+  waterfall?: any;
+}
+
 interface VitalsContextType {
   vitals: VitalsData;
   setVitals: (vitals: VitalsData) => void;
+  riskAnalysis: RiskAnalysis | null;
+  setRiskAnalysis: (analysis: RiskAnalysis | null) => void;
+  ageGroup: string;
+  setAgeGroup: (ageGroup: string) => void;
 }
 
 const VitalsContext = createContext<VitalsContextType | undefined>(undefined);
@@ -36,8 +54,18 @@ export function VitalsProvider({ children }: { children: ReactNode }) {
     Retractions: 1,
   });
 
+  const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
+  const [ageGroup, setAgeGroup] = useState<string>("preschool");
+
   return (
-    <VitalsContext.Provider value={{ vitals, setVitals }}>
+    <VitalsContext.Provider value={{ 
+      vitals, 
+      setVitals,
+      riskAnalysis,
+      setRiskAnalysis,
+      ageGroup,
+      setAgeGroup
+    }}>
       {children}
     </VitalsContext.Provider>
   );

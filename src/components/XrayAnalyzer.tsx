@@ -13,12 +13,10 @@ interface AnalysisResult {
 
 export default function XrayAnalyzer() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { setXrayResults } = useXrayContext();
+  const { setXrayResults, setXrayResult, xrayResult, previewUrl, setPreviewUrl, clearXray } = useXrayContext();
   
   // Feedback states
   const [showFeedback, setShowFeedback] = useState(false);
@@ -33,7 +31,7 @@ export default function XrayAnalyzer() {
     if (file) {
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
-      setResult(null);
+      setXrayResult(null);
       setError(null);
     }
   };
@@ -69,7 +67,7 @@ export default function XrayAnalyzer() {
 
       const data = await response.json();
       console.log('[Client] X-ray Analysis Result:', JSON.stringify(data, null, 2));
-      setResult(data);
+      setXrayResult(data);
       
       // Update context with imaging probability and confidence
       const imagingConfidence = Math.abs(data.probability - 0.5) * 2;
@@ -86,8 +84,6 @@ export default function XrayAnalyzer() {
 
   const handleClear = () => {
     setSelectedFile(null);
-    setPreviewUrl(null);
-    setResult(null);
     setError(null);
     setShowFeedback(false);
     setDisagreeRisk(false);
@@ -95,7 +91,7 @@ export default function XrayAnalyzer() {
     setDisagreeVitals(false);
     setFeedbackNotes("");
     setFeedbackSubmitted(false);
-    setXrayResults(0, 0);
+    clearXray();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -230,49 +226,49 @@ export default function XrayAnalyzer() {
               </motion.div>
             )}
 
-            {result && (
+            {xrayResult && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 className={`rounded-3xl p-6 border-2 ${
-                  result.label === 'PNEUMONIA'
+                  xrayResult.label === 'PNEUMONIA'
                     ? 'bg-red-50 border-red-200'
                     : 'bg-emerald-50 border-emerald-200'
                 }`}
               >
                 <div className="flex items-center gap-4 mb-4">
-                  {result.label === 'PNEUMONIA' ? (
+                  {xrayResult.label === 'PNEUMONIA' ? (
                     <AlertCircle className="w-10 h-10 text-red-600" />
                   ) : (
                     <CheckCircle2 className="w-10 h-10 text-emerald-600" />
                   )}
                   <div>
                     <h3 className={`text-2xl font-extrabold ${
-                      result.label === 'PNEUMONIA' ? 'text-red-900' : 'text-emerald-900'
+                      xrayResult.label === 'PNEUMONIA' ? 'text-red-900' : 'text-emerald-900'
                     }`}>
-                      {result.label}
+                      {xrayResult.label}
                     </h3>
                     <p className={`text-lg font-semibold ${
-                      result.label === 'PNEUMONIA' ? 'text-red-700' : 'text-emerald-700'
+                      xrayResult.label === 'PNEUMONIA' ? 'text-red-700' : 'text-emerald-700'
                     }`}>
-                      Confidence: {(result.probability * 100).toFixed(1)}%
+                      Confidence: {(xrayResult.probability * 100).toFixed(1)}%
                     </p>
                   </div>
                 </div>
 
                 <div className="bg-zinc-900 rounded-2xl overflow-hidden">
                   <img
-                    src={`data:image/png;base64,${result.image}`}
+                    src={`data:image/png;base64,${xrayResult.image}`}
                     alt="Analysis result"
                     className="w-full h-auto"
                   />
                 </div>
 
                 <p className={`mt-4 text-sm font-medium ${
-                  result.label === 'PNEUMONIA' ? 'text-red-700' : 'text-emerald-700'
+                  xrayResult.label === 'PNEUMONIA' ? 'text-red-700' : 'text-emerald-700'
                 }`}>
-                  {result.label === 'PNEUMONIA'
+                  {xrayResult.label === 'PNEUMONIA'
                     ? 'The AI model has detected patterns consistent with pneumonia. The heatmap shows areas of concern in red/orange.'
                     : 'The AI model indicates normal chest X-ray patterns. The heatmap shows minimal areas of concern in green/yellow.'}
                 </p>
@@ -385,7 +381,7 @@ export default function XrayAnalyzer() {
               </motion.div>
             )}
 
-            {!result && !error && !loading && (
+            {!xrayResult && !error && !loading && (
               <div className="bg-zinc-50 rounded-3xl p-12 text-center border border-zinc-200">
                 <Scan className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-zinc-900 mb-2">

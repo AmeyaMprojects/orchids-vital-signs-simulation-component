@@ -112,7 +112,7 @@ interface RiskAnalysis {
 }
 
 export default function VitalSignsSimulator() {
-  const { setVitals: setContextVitals } = useVitalsContext();
+  const { setVitals: setContextVitals, riskAnalysis, setRiskAnalysis, ageGroup, setAgeGroup } = useVitalsContext();
   
   const [vitals, setVitals] = useState<Vitals>({
     temp: 38,
@@ -128,8 +128,6 @@ export default function VitalSignsSimulator() {
     hr: 0,
     rr: 0,
   });
-  const [ageGroup, setAgeGroup] = useState<keyof typeof PEDIATRIC_NORMALS>("preschool");
-  const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
