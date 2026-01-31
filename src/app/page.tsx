@@ -35,6 +35,13 @@ export default function Home() {
               Vitals
             </Tabs.Trigger>
             <Tabs.Trigger
+              value="gated"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold text-zinc-600 transition-all hover:bg-zinc-50 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
+            >
+              <FileText className="w-5 h-5" />
+              Gated Logic
+            </Tabs.Trigger>
+            <Tabs.Trigger
               value="report"
               className="flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold text-zinc-600 transition-all hover:bg-zinc-50 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
             >
@@ -52,6 +59,18 @@ export default function Home() {
           <Tabs.Content value="vitals" className="outline-none">
             <div className="bg-white rounded-[2.5rem] p-4 shadow-xl shadow-zinc-200/50">
               <VitalSignsSimulator />
+            </div>
+          </Tabs.Content>
+
+          <Tabs.Content value="gated" className="outline-none">
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-zinc-200/50 min-h-[400px] flex items-start">
+              <div className="text-left space-y-4 w-full">
+                <h3 className="text-2xl font-bold text-zinc-900">Gated Logic</h3>
+                <p className="text-zinc-600 max-w-2xl">Compact, deterministic gate rules for quick triage. Use this section to evaluate simple rule-based risk assessments derived from vital signs.</p>
+                <div className="mt-4 p-4 bg-zinc-50 rounded-lg border border-zinc-100">
+                  <p className="text-sm text-zinc-500">This view is a lightweight UI surface for the project's gated logic. For interactive simulation use the Vitals tab, which also exposes gated evaluation inside the simulator.</p>
+                </div>
+              </div>
             </div>
           </Tabs.Content>
 
