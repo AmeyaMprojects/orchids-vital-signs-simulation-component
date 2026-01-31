@@ -426,7 +426,7 @@ function componentTagger(src, map) {
                 if (mapContext) {
                     orchidsId += `@${mapContext.arrayName}`;
                 }
-                // 🔍 Append referenced variable locations for simple identifier references in props
+                //  Append referenced variable locations for simple identifier references in props
                 (_a = node.attributes) === null || _a === void 0 ? void 0 : _a.forEach((attr) => {
                     var _a, _b;
                     if (attr.type === 'JSXAttribute' &&

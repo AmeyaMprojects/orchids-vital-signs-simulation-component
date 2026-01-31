@@ -1,0 +1,255 @@
+"use client";
+
+import React, { useState, useRef } from "react";
+import { Upload, Scan, AlertCircle, CheckCircle2, Loader2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface AnalysisResult {
+  label: string;
+  probability: number;
+  image: string;
+}
+
+export default function XrayAnalyzer() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setResult(null);
+      setError(null);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedFile) {
+      console.log('[Client] No file selected');
+      return;
+    }
+
+    console.log('[Client] Starting analysis for file:', selectedFile.name);
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    console.log('[Client] FormData created with file');
+
+    try {
+      console.log('[Client] Sending request to /api/analyze-xray...');
+      const response = await fetch('/api/analyze-xray', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('[Client] Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[Client] Error response:', errorData);
+        throw new Error(errorData.details || errorData.error || 'Analysis failed');
+      }
+
+      const data = await response.json();
+      console.log('[Client] X-ray Analysis Result:', JSON.stringify(data, null, 2));
+      setResult(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to analyze X-ray. Please try again.';
+      setError(errorMessage);
+      console.error('[Client] Analysis error:', err);
+    } finally {
+      setLoading(false);
+      console.log('[Client] Analysis complete');
+    }
+  };
+
+  const handleClear = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setResult(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="w-full max-w-6xl mx-auto p-6 md:p-8">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
+          <Scan className="text-indigo-600 w-7 h-7" />
+          X-Ray Pneumonia Analyzer
+        </h2>
+        <p className="text-zinc-500 mt-1">Upload a chest X-ray image to analyze for pneumonia patterns using AI.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Upload Section */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border-2 border-dashed border-zinc-200 p-8 text-center hover:border-indigo-300 transition-colors">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="xray-upload"
+            />
+            <label
+              htmlFor="xray-upload"
+              className="cursor-pointer block"
+            >
+              <Upload className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+                {selectedFile ? selectedFile.name : 'Choose X-ray Image'}
+              </h3>
+              <p className="text-sm text-zinc-500">
+                Click to select or drag and drop
+              </p>
+            </label>
+          </div>
+
+          {previewUrl && (
+            <div className="relative bg-zinc-900 rounded-3xl overflow-hidden">
+              <img
+                src={previewUrl}
+                alt="X-ray preview"
+                className="w-full h-auto"
+              />
+              <button
+                onClick={handleClear}
+                className="absolute top-4 right-4 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-zinc-700" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex gap-4">
+            <button
+              onClick={handleAnalyze}
+              disabled={!selectedFile || loading}
+              className="flex-1 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-lg transition-all hover:bg-indigo-700 disabled:bg-zinc-300 disabled:cursor-not-allowed shadow-lg disabled:shadow-none flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Scan className="w-5 h-5" />
+                  Analyze X-ray
+                </>
+              )}
+            </button>
+            {selectedFile && (
+              <button
+                onClick={handleClear}
+                className="px-8 py-4 bg-zinc-100 text-zinc-700 rounded-2xl font-bold text-lg transition-all hover:bg-zinc-200"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results Section */}
+        <div className="space-y-6">
+          <AnimatePresence mode="wait">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-red-50 border-2 border-red-200 rounded-3xl p-6 flex items-start gap-4"
+              >
+                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="font-bold text-red-900 mb-1">Analysis Failed</h3>
+                  <p className="text-red-700">{error}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {result && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className={`rounded-3xl p-6 border-2 ${
+                  result.label === 'PNEUMONIA'
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-emerald-50 border-emerald-200'
+                }`}
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  {result.label === 'PNEUMONIA' ? (
+                    <AlertCircle className="w-10 h-10 text-red-600" />
+                  ) : (
+                    <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+                  )}
+                  <div>
+                    <h3 className={`text-2xl font-extrabold ${
+                      result.label === 'PNEUMONIA' ? 'text-red-900' : 'text-emerald-900'
+                    }`}>
+                      {result.label}
+                    </h3>
+                    <p className={`text-lg font-semibold ${
+                      result.label === 'PNEUMONIA' ? 'text-red-700' : 'text-emerald-700'
+                    }`}>
+                      Confidence: {(result.probability * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900 rounded-2xl overflow-hidden">
+                  <img
+                    src={`data:image/png;base64,${result.image}`}
+                    alt="Analysis result"
+                    className="w-full h-auto"
+                  />
+                </div>
+
+                <p className={`mt-4 text-sm font-medium ${
+                  result.label === 'PNEUMONIA' ? 'text-red-700' : 'text-emerald-700'
+                }`}>
+                  {result.label === 'PNEUMONIA'
+                    ? 'The AI model has detected patterns consistent with pneumonia. The heatmap shows areas of concern in red/orange.'
+                    : 'The AI model indicates normal chest X-ray patterns. The heatmap shows minimal areas of concern in green/yellow.'}
+                </p>
+              </motion.div>
+            )}
+
+            {!result && !error && !loading && (
+              <div className="bg-zinc-50 rounded-3xl p-12 text-center border border-zinc-200">
+                <Scan className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-zinc-900 mb-2">
+                  No Analysis Yet
+                </h3>
+                <p className="text-zinc-500">
+                  Upload an X-ray image and click "Analyze X-ray" to see results.
+                </p>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-2xl text-amber-700 text-xs border border-amber-200 italic mt-8">
+        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <p>
+          MEDICAL DISCLAIMER: This AI analysis is for educational purposes only and should NOT be used for clinical diagnosis. 
+          Always consult qualified healthcare professionals for medical evaluation and treatment decisions.
+        </p>
+      </div>
+    </div>
+  );
+}
