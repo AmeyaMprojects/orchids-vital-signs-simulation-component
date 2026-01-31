@@ -222,7 +222,7 @@ export default function XrayAnalyzer() {
                 exit={{ opacity: 0, y: -20 }}
                 className="bg-red-50 border-2 border-red-200 rounded-3xl p-6 flex items-start gap-4"
               >
-                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
+                <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-1" />
                 <div>
                   <h3 className="font-bold text-red-900 mb-1">Analysis Failed</h3>
                   <p className="text-red-700">{error}</p>
@@ -401,7 +401,7 @@ export default function XrayAnalyzer() {
       </div>
 
       <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-2xl text-amber-700 text-xs border border-amber-200 italic mt-8">
-        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <AlertCircle className="w-4 h-4 shrink-0" />
         <p>
           MEDICAL DISCLAIMER: This AI analysis is for educational purposes only and should NOT be used for clinical diagnosis. 
           Always consult qualified healthcare professionals for medical evaluation and treatment decisions.

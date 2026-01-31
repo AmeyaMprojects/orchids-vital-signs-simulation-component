@@ -241,7 +241,7 @@ export default function GatedLogic() {
       </div>
 
       <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-2xl text-amber-700 text-xs border border-amber-200 italic mt-8">
-        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+        <AlertTriangle className="w-4 h-4 shrink-0" />
         <p>
           CLINICAL DISCLAIMER: This gated logic system is for educational and research purposes only. 
           All triage decisions must be validated by qualified healthcare professionals.

@@ -1,233 +1,85 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Thermometer, 
-  Activity, 
-  Wind, 
-  Droplets, 
-  Stethoscope, 
-  AlertCircle,
-  CheckCircle2,
-  AlertTriangle,
-  Info,
-  TrendingUp,
-  TrendingDown,
-  Minus
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useVitalsContext } from "@/contexts/VitalsContext";
+import React, { useState, useEffect } from 'react';
+import { Users, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { useVitalsContext } from '@/contexts/VitalsContext';
 
-interface VitalRange {
-  min: number;
-  max: number;
-  step: number;
-  unit: string;
-}
+const VitalSignsSimulator: React.FC = () => {
+  const { setVitals: updateGlobalVitals } = useVitalsContext();
+  const [ageGroup, setAgeGroup] = useState<"infant" | "toddler" | "preschool" | "child">("preschool");
 
-const SCENARIO_LIMITS = {
-  NORMAL: {
-    temp: { min: 36.5, max: 37.5 },
-    spo2: { min: 95, max: 100 },
-    hr: { min: 80, max: 120 },
-    rr: { min: 20, max: 30 },
-    cough: { min: 0, max: 0.15 },
-    retractions: { min: 0, max: 0.05 },
-  },
-  PNEUMONIA: {
-    temp: { min: 38.2, max: 40.0 },
-    spo2: { min: 88, max: 94 },
-    hr: { min: 130, max: 160 },
-    rr: { min: 40, max: 60 },
-    cough: { min: 0, max: 0.85 },
-    retractions: { min: 0, max: 0.75 },
-  },
-};
-
-const GLOBAL_RANGES: Record<string, VitalRange> = {
-  temp: { min: 36.5, max: 40.0, step: 0.1, unit: "°C" },
-  spo2: { min: 88, max: 100, step: 1, unit: "%" },
-  hr: { min: 80, max: 160, step: 1, unit: "bpm" },
-  rr: { min: 20, max: 60, step: 1, unit: "breaths/min" },
-  cough: { min: 0, max: 1.0, step: 0.01, unit: "prob" },
-  retractions: { min: 0, max: 1.0, step: 0.01, unit: "prob" },
-};
-
-interface Vitals {
-  temp: number;
-  spo2: number;
-  hr: number;
-  rr: number;
-  cough: number;
-  retractions: number;
-}
-
-interface VitalTrends {
-  temp: 'up' | 'down' | 'stable';
-  spo2: 'up' | 'down' | 'stable';
-  hr: 'up' | 'down' | 'stable';
-  rr: 'up' | 'down' | 'stable';
-  cough: 'up' | 'down' | 'stable';
-  retractions: 'up' | 'down' | 'stable';
-}
-
-interface SimulationResult {
-  status: "Normal" | "Pneumonia" | "Borderline";
-  message: string;
-  color: string;
-  icon: React.ReactNode;
-}
-
-const generateMockVitals = (): Vitals => {
-  const scenarios = ['normal', 'pneumonia', 'borderline'];
-  const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-  
-  if (scenario === 'pneumonia') {
-    return {
-      temp: 38.2 + Math.random() * 1.8,
-      spo2: 88 + Math.random() * 6,
-      hr: 130 + Math.random() * 30,
-      rr: 40 + Math.random() * 20,
-      cough: Math.random() * 0.85,
-      retractions: Math.random() * 0.75,
-    };
-  } else if (scenario === 'normal') {
-    return {
-      temp: 36.5 + Math.random() * 1.0,
-      spo2: 95 + Math.random() * 5,
-      hr: 80 + Math.random() * 40,
-      rr: 20 + Math.random() * 10,
-      cough: Math.random() * 0.15,
-      retractions: Math.random() * 0.05,
-    };
-  } else {
-    return {
-      temp: 37 + Math.random() * 2,
-      spo2: 90 + Math.random() * 8,
-      hr: 90 + Math.random() * 50,
-      rr: 25 + Math.random() * 25,
-      cough: Math.random() * 0.5,
-      retractions: Math.random() * 0.4,
-    };
-  }
-};
-
-export default function VitalSignsSimulator() {
-  const { setVitals: setContextVitals } = useVitalsContext();
-  
-  const [vitals, setVitals] = useState<Vitals>({
-    temp: 38.2,
-    spo2: 92,
-    hr: 130,
-    rr: 38,
-    cough: 1,
-    retractions: 1,
+  const [vitals, setVitals] = useState({
+    Temperature_C: 38.2,
+    Temperature_trend: 0.7,
+    SpO2_percent: 92,
+    SpO2_trend: -2.5,
+    HeartRate_bpm: 130,
+    HeartRate_trend: 10,
+    RespRate_bpm: 38,
+    RespRate_trend: 8,
+    Cough: 1,        // 1 = Yes, 0 = No
+    Retractions: 1,  // 1 = Yes, 0 = No
   });
-  const [trends, setTrends] = useState<VitalTrends>({
-    temp: 'up',
-    spo2: 'down',
-    hr: 'up',
-    rr: 'up',
-    cough: 'stable',
-    retractions: 'stable',
-  });
-  const [result, setResult] = useState<SimulationResult | null>(null);
-  const [lastLog, setLastLog] = useState<Vitals | null>(null);
-  const [isStreaming, setIsStreaming] = useState(true);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Update global context whenever vitals change
   useEffect(() => {
-    if (isStreaming) {
-      intervalRef.current = setInterval(() => {
-        setVitals(currentVitals => {
-          const newVitals = generateMockVitals();
-          
-          const newTrends: VitalTrends = {
-            temp: newVitals.temp > currentVitals.temp ? 'up' : newVitals.temp < currentVitals.temp ? 'down' : 'stable',
-            spo2: newVitals.spo2 > currentVitals.spo2 ? 'up' : newVitals.spo2 < currentVitals.spo2 ? 'down' : 'stable',
-            hr: newVitals.hr > currentVitals.hr ? 'up' : newVitals.hr < currentVitals.hr ? 'down' : 'stable',
-            rr: newVitals.rr > currentVitals.rr ? 'up' : newVitals.rr < currentVitals.rr ? 'down' : 'stable',
-            cough: newVitals.cough > currentVitals.cough ? 'up' : newVitals.cough < currentVitals.cough ? 'down' : 'stable',
-            retractions: newVitals.retractions > currentVitals.retractions ? 'up' : newVitals.retractions < currentVitals.retractions ? 'down' : 'stable',
-          };
-          setTrends(newTrends);
-          analyzeVitals(newVitals);
-          
-          // Update context with new vitals
-          setContextVitals({
-            Temperature_C: newVitals.temp,
-            Temperature_trend: newVitals.temp - currentVitals.temp,
-            SpO2_percent: newVitals.spo2,
-            SpO2_trend: newVitals.spo2 - currentVitals.spo2,
-            HeartRate_bpm: newVitals.hr,
-            HeartRate_trend: newVitals.hr - currentVitals.hr,
-            RespRate_bpm: newVitals.rr,
-            RespRate_trend: newVitals.rr - currentVitals.rr,
-            Cough: newVitals.cough >= 0.5 ? 1 : 0,
-            Retractions: newVitals.retractions >= 0.5 ? 1 : 0,
-          });
-          
-          return newVitals;
-        });
-      }, 18000000); // 5 hours in milliseconds
-    }
+    updateGlobalVitals(vitals);
+  }, [vitals, updateGlobalVitals]);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isStreaming]);
-  
-  const analyzeVitals = (currentVitals: Vitals) => {
-    console.log("Simulation Values:", JSON.stringify(currentVitals, null, 2));
-    setLastLog(currentVitals);
-    let pneumoniaCount = 0;
-    let normalCount = 0;
+  const [showResults, setShowResults] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [predictionResult, setPredictionResult] = useState<any>(null);
 
-    const vitalsList: (keyof Vitals)[] = ["temp", "spo2", "hr", "rr", "cough", "retractions"];
-    
-    vitalsList.forEach(key => {
-      const p = SCENARIO_LIMITS.PNEUMONIA[key];
-      const n = SCENARIO_LIMITS.NORMAL[key];
-      
-      if (currentVitals[key] >= p.min && currentVitals[key] <= p.max) pneumoniaCount++;
-      if (currentVitals[key] >= n.min && currentVitals[key] <= n.max) normalCount++;
-    });
-
-    if (pneumoniaCount >= 4) {
-      setResult({
-        status: "Pneumonia",
-        message: "Likely Pneumonia Pattern: Lower oxygen levels, faster breathing, and fever together are commonly seen in pneumonia.",
-        color: "bg-red-50 text-red-700 border-red-200",
-        icon: <AlertCircle className="w-8 h-8 text-red-600" />
-      });
-    } else if (normalCount >= 4) {
-      setResult({
-        status: "Normal",
-        message: "Normal Vital Pattern: All vital signs are within expected healthy ranges.",
-        color: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        icon: <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-      });
-    } else {
-      setResult({
-        status: "Borderline",
-        message: "Borderline / Needs Clinical Correlation: Some vitals are outside normal ranges but don't clearly indicate pneumonia.",
-        color: "bg-amber-50 text-amber-700 border-amber-200",
-        icon: <AlertTriangle className="w-8 h-8 text-amber-600" />
-      });
-    }
+  // PEDIATRIC NORMAL RANGES
+  const PEDIATRIC_NORMALS = {
+    infant: { HeartRate_bpm: [100, 160], RespRate_bpm: [30, 60] },
+    toddler: { HeartRate_bpm: [90, 150], RespRate_bpm: [24, 40] },
+    preschool: { HeartRate_bpm: [80, 120], RespRate_bpm: [22, 34] },
+    child: { HeartRate_bpm: [70, 110], RespRate_bpm: [18, 30] },
   };
 
-  const renderVitalCard = (label: string, key: keyof Vitals, icon: React.ReactNode) => {
-    const config = GLOBAL_RANGES[key];
-    const value = vitals[key];
-    const trend = trends[key];
+  const ageFlags = {
+    HeartRate:
+      vitals.HeartRate_bpm > PEDIATRIC_NORMALS[ageGroup].HeartRate_bpm[1]
+        ? "High for age"
+        : "Normal for age",
+    RespRate:
+      vitals.RespRate_bpm > PEDIATRIC_NORMALS[ageGroup].RespRate_bpm[1]
+        ? "High for age"
+        : "Normal for age",
+  };
 
-    const getTrendIcon = () => {
-      if (trend === 'up') return <TrendingUp className="w-5 h-5 text-green-500" />;
-      if (trend === 'down') return <TrendingDown className="w-5 h-5 text-red-500" />;
-      return <Minus className="w-5 h-5 text-zinc-400" />;
-    };
+  const handleCalculate = async () => {
+    setIsLoading(true);
+    setError(null);
+    setShowResults(false);
+
+    try {
+      const response = await fetch('http://localhost:5000/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vitals: vitals,
+          age_group: ageGroup
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Prediction failed');
+      }
+
+      const result = await response.json();
+      setPredictionResult(result);
+      setShowResults(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error("Prediction error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -432,7 +284,7 @@ export default function VitalSignsSimulator() {
       `}</style>
 
       <div className="vital-simulator">
-        <h1>🩺 Pediatric Pneumonia Risk Analyzer</h1>
+        <h1>Pediatric Pneumonia Risk Analyzer</h1>
 
         <div className="card">
           <h2 style={{ color: '#1e40af', marginBottom: '24px' }}>Patient Vitals</h2>
@@ -447,10 +299,10 @@ export default function VitalSignsSimulator() {
               value={ageGroup}
               onChange={(e) => setAgeGroup(e.target.value as typeof ageGroup)}
             >
-              <option value="infant">👶 Infant (0–1 year)</option>
-              <option value="toddler">🧒 Toddler (1–3 years)</option>
-              <option value="preschool">👧 Preschool (4–6 years)</option>
-              <option value="child">👦 Child (7–12 years)</option>
+              <option value="infant">Infant (0–1 year)</option>
+              <option value="toddler">Toddler (1–3 years)</option>
+              <option value="preschool">Preschool (4–6 years)</option>
+              <option value="child">Child (7–12 years)</option>
             </select>
           </div>
 
@@ -458,7 +310,7 @@ export default function VitalSignsSimulator() {
             {/* Temperature */}
             <div className="slider-group">
               <label>
-                🌡️ Temperature (°C)
+                Temperature (°C)
                 <span className="value-display">{vitals.Temperature_C.toFixed(1)}</span>
               </label>
               <input
@@ -473,7 +325,7 @@ export default function VitalSignsSimulator() {
 
             <div className="slider-group">
               <label>
-                📈 Temperature Trend (°C/min)
+                Temperature Trend (°C/min)
                 <span className="value-display">
                   {vitals.Temperature_trend >= 0 ? "+" : ""}{vitals.Temperature_trend.toFixed(1)}
                 </span>
@@ -491,7 +343,7 @@ export default function VitalSignsSimulator() {
             {/* SpO2 */}
             <div className="slider-group">
               <label>
-                💉 SpO₂ (%)
+                SpO₂ (%)
                 <span className="value-display">{vitals.SpO2_percent}</span>
               </label>
               <input
@@ -506,7 +358,7 @@ export default function VitalSignsSimulator() {
 
             <div className="slider-group">
               <label>
-                📉 SpO₂ Trend (%/min)
+                SpO₂ Trend (%/min)
                 <span className="value-display">
                   {vitals.SpO2_trend >= 0 ? "+" : ""}{vitals.SpO2_trend.toFixed(1)}
                 </span>
@@ -524,7 +376,7 @@ export default function VitalSignsSimulator() {
             {/* Heart Rate */}
             <div className="slider-group">
               <label>
-                ❤️ Heart Rate (bpm)
+                Heart Rate (bpm)
                 <span className="value-display">{vitals.HeartRate_bpm}</span>
               </label>
               <input
@@ -539,7 +391,7 @@ export default function VitalSignsSimulator() {
 
             <div className="slider-group">
               <label>
-                ⚡ Heart Rate Trend (bpm/min)
+                Heart Rate Trend (bpm/min)
                 <span className="value-display">
                   {vitals.HeartRate_trend >= 0 ? "+" : ""}{vitals.HeartRate_trend}
                 </span>
@@ -557,7 +409,7 @@ export default function VitalSignsSimulator() {
             {/* Resp Rate */}
             <div className="slider-group">
               <label>
-                🫁 Resp Rate (breaths/min)
+                Resp Rate (breaths/min)
                 <span className="value-display">{vitals.RespRate_bpm}</span>
               </label>
               <input
@@ -572,7 +424,7 @@ export default function VitalSignsSimulator() {
 
             <div className="slider-group">
               <label>
-                📊 Resp Rate Trend
+                Resp Rate Trend
                 <span className="value-display">
                   {vitals.RespRate_trend >= 0 ? "+" : ""}{vitals.RespRate_trend}
                 </span>
@@ -589,7 +441,7 @@ export default function VitalSignsSimulator() {
 
             {/* Yes/No Dropdowns */}
             <div className="slider-group">
-              <label>🤧 Cough</label>
+              <label>Cough</label>
               <select
                 className="yes-no-select"
                 value={vitals.Cough}
@@ -601,7 +453,7 @@ export default function VitalSignsSimulator() {
             </div>
 
             <div className="slider-group">
-              <label>⚠️ Retractions</label>
+              <label>Retractions</label>
               <select
                 className="yes-no-select"
                 value={vitals.Retractions}
@@ -618,7 +470,7 @@ export default function VitalSignsSimulator() {
             onClick={handleCalculate}
             disabled={isLoading}
           >
-            {isLoading ? '🔄 Analyzing...' : '🧠 Calculate Pneumonia Risk'}
+            {isLoading ? 'Analyzing...' : 'Calculate Pneumonia Risk'}
           </button>
         </div>
 
@@ -646,7 +498,7 @@ export default function VitalSignsSimulator() {
             </div>
 
             <div className="contributors">
-              <h3>🔍 Top Contributing Factors</h3>
+              <h3>Top Contributing Factors</h3>
               {predictionResult.risk_factors_text && predictionResult.risk_factors_text.length > 0 ? (
                 predictionResult.risk_factors_text.map((text: string, i: number) => (
                   <div key={i} className="contributor-item">
@@ -671,19 +523,19 @@ export default function VitalSignsSimulator() {
 
             <div className="flags">
               <span className={`flag ${predictionResult.age_adjusted_flags.HeartRate.includes("High") ? "warning" : ""}`}>
-                ❤️ Heart Rate: {predictionResult.age_adjusted_flags.HeartRate}
+                Heart Rate: {predictionResult.age_adjusted_flags.HeartRate}
               </span>
               <span className={`flag ${predictionResult.age_adjusted_flags.RespRate.includes("High") ? "warning" : ""}`}>
-                🫁 Respiratory Rate: {predictionResult.age_adjusted_flags.RespRate}
+                Respiratory Rate: {predictionResult.age_adjusted_flags.RespRate}
               </span>
               {predictionResult.vitals_probability >= 0.7 && (
                 <span className="flag warning">
-                  ⚠️ High Risk
+                  High Risk
                 </span>
               )}
               {predictionResult.vitals_probability < 0.3 && (
                 <span className="flag">
-                  ✅ Low Risk
+                  Low Risk
                 </span>
               )}
             </div>
@@ -691,7 +543,7 @@ export default function VitalSignsSimulator() {
         )}
 
         <footer>
-          🧠 Powered by SHAP Explainable AI • 🏥 For educational purposes only • 
+          Powered by SHAP Explainable AI • For educational purposes only • 
           Not for clinical use • Results are model-based predictions
         </footer>
       </div>
