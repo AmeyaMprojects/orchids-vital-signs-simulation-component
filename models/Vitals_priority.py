@@ -20,7 +20,7 @@ vitals_input = {
     "Retractions": 1
 }
 
-MODEL_PATH = r"C:\Users\Arun\Downloads\Lovelace\vitals_model.pkl"
+MODEL_PATH = r"models\vitals_model.pkl"
 
 FEATURE_COLUMNS = [
     "Temperature_C", "Temperature_trend",
