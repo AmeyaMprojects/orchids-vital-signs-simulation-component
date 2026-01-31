@@ -2,22 +2,27 @@
 
 import VitalSignsSimulator from "@/components/VitalSignsSimulator";
 import XrayAnalyzer from "@/components/XrayAnalyzer";
+import GatedLogic from "@/components/GatedLogic";
+import { XrayProvider } from "@/contexts/XrayContext";
+import { VitalsProvider } from "@/contexts/VitalsContext";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Scan, Activity, FileText } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900">
-      <header className="max-w-6xl mx-auto py-12 px-6">
-        <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
-          Clinical Educator
-        </h1>
-        <p className="mt-4 text-xl text-zinc-600 max-w-2xl">
-          Empowering doctors with visual tools to explain vital sign patterns to patients.
-        </p>
-      </header>
+    <XrayProvider>
+      <VitalsProvider>
+        <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900">
+        <header className="max-w-6xl mx-auto py-12 px-6">
+          <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
+            Clinical Educator
+          </h1>
+          <p className="mt-4 text-xl text-zinc-600 max-w-2xl">
+            Empowering doctors with visual tools to explain vital sign patterns to patients.
+          </p>
+        </header>
 
-      <main className="max-w-6xl mx-auto pb-24 px-6">
+        <main className="max-w-6xl mx-auto pb-24 px-6">
         <Tabs.Root defaultValue="vitals" className="w-full">
           <Tabs.List className="flex gap-3 mb-8 bg-white p-2 rounded-2xl shadow-md border border-zinc-100">
             <Tabs.Trigger
@@ -63,14 +68,8 @@ export default function Home() {
           </Tabs.Content>
 
           <Tabs.Content value="gated" className="outline-none">
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-zinc-200/50 min-h-[400px] flex items-start">
-              <div className="text-left space-y-4 w-full">
-                <h3 className="text-2xl font-bold text-zinc-900">Gated Logic</h3>
-                <p className="text-zinc-600 max-w-2xl">Compact, deterministic gate rules for quick triage. Use this section to evaluate simple rule-based risk assessments derived from vital signs.</p>
-                <div className="mt-4 p-4 bg-zinc-50 rounded-lg border border-zinc-100">
-                  <p className="text-sm text-zinc-500">This view is a lightweight UI surface for the project's gated logic. For interactive simulation use the Vitals tab, which also exposes gated evaluation inside the simulator.</p>
-                </div>
-              </div>
+            <div className="bg-white rounded-[2.5rem] p-4 shadow-xl shadow-zinc-200/50">
+              <GatedLogic />
             </div>
           </Tabs.Content>
 
@@ -109,5 +108,7 @@ export default function Home() {
         </section>
       </main>
     </div>
+      </VitalsProvider>
+    </XrayProvider>
   );
 }

@@ -17,6 +17,7 @@ import {
   Minus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useVitalsContext } from "@/contexts/VitalsContext";
 
 interface VitalRange {
   min: number;
@@ -113,6 +114,8 @@ const generateMockVitals = (): Vitals => {
 };
 
 export default function VitalSignsSimulator() {
+  const { setVitals: setContextVitals } = useVitalsContext();
+  
   const [vitals, setVitals] = useState<Vitals>({
     temp: 38.2,
     spo2: 92,
@@ -150,6 +153,20 @@ export default function VitalSignsSimulator() {
           };
           setTrends(newTrends);
           analyzeVitals(newVitals);
+          
+          // Update context with new vitals
+          setContextVitals({
+            Temperature_C: newVitals.temp,
+            Temperature_trend: newVitals.temp - currentVitals.temp,
+            SpO2_percent: newVitals.spo2,
+            SpO2_trend: newVitals.spo2 - currentVitals.spo2,
+            HeartRate_bpm: newVitals.hr,
+            HeartRate_trend: newVitals.hr - currentVitals.hr,
+            RespRate_bpm: newVitals.rr,
+            RespRate_trend: newVitals.rr - currentVitals.rr,
+            Cough: newVitals.cough >= 0.5 ? 1 : 0,
+            Retractions: newVitals.retractions >= 0.5 ? 1 : 0,
+          });
           
           return newVitals;
         });

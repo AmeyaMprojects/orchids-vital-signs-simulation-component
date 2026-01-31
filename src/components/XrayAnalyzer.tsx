@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import { Upload, Scan, AlertCircle, CheckCircle2, Loader2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useXrayContext } from "@/contexts/XrayContext";
 
 interface AnalysisResult {
   label: string;
@@ -17,6 +18,7 @@ export default function XrayAnalyzer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { setXrayResults } = useXrayContext();
   
   // Feedback states
   const [showFeedback, setShowFeedback] = useState(false);
@@ -68,6 +70,10 @@ export default function XrayAnalyzer() {
       const data = await response.json();
       console.log('[Client] X-ray Analysis Result:', JSON.stringify(data, null, 2));
       setResult(data);
+      
+      // Update context with imaging probability and confidence
+      const imagingConfidence = Math.abs(data.probability - 0.5) * 2;
+      setXrayResults(data.probability, imagingConfidence);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to analyze X-ray. Please try again.';
       setError(errorMessage);
@@ -89,6 +95,7 @@ export default function XrayAnalyzer() {
     setDisagreeVitals(false);
     setFeedbackNotes("");
     setFeedbackSubmitted(false);
+    setXrayResults(0, 0);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -137,30 +144,30 @@ export default function XrayAnalyzer() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Upload Section */}
         <div className="space-y-6">
-          <div className="bg-white rounded-3xl border-2 border-dashed border-zinc-200 p-8 text-center hover:border-indigo-300 transition-colors">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-              id="xray-upload"
-            />
-            <label
-              htmlFor="xray-upload"
-              className="cursor-pointer block"
-            >
-              <Upload className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-zinc-900 mb-2">
-                {selectedFile ? selectedFile.name : 'Choose X-ray Image'}
-              </h3>
-              <p className="text-sm text-zinc-500">
-                Click to select or drag and drop
-              </p>
-            </label>
-          </div>
-
-          {previewUrl && (
+          {!previewUrl ? (
+            <div className="bg-white rounded-3xl border-2 border-dashed border-zinc-200 p-8 text-center hover:border-indigo-300 transition-colors">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="xray-upload"
+              />
+              <label
+                htmlFor="xray-upload"
+                className="cursor-pointer block"
+              >
+                <Upload className="w-16 h-16 text-zinc-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+                  Choose X-ray Image
+                </h3>
+                <p className="text-sm text-zinc-500">
+                  Click to select or drag and drop
+                </p>
+              </label>
+            </div>
+          ) : (
             <div className="relative bg-zinc-900 rounded-3xl overflow-hidden">
               <img
                 src={previewUrl}
