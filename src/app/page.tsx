@@ -3,6 +3,7 @@
 import VitalSignsSimulator from "@/components/VitalSignsSimulator";
 import XrayAnalyzer from "@/components/XrayAnalyzer";
 import GatedLogic from "@/components/GatedLogic";
+import ClinicalReport from "@/components/ClinicalReport";
 import { XrayProvider } from "@/contexts/XrayContext";
 import { VitalsProvider } from "@/contexts/VitalsContext";
 import * as Tabs from "@radix-ui/react-tabs";
@@ -74,14 +75,8 @@ export default function Home() {
           </Tabs.Content>
 
           <Tabs.Content value="report" className="outline-none">
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-zinc-200/50 min-h-[600px] flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <FileText className="w-16 h-16 text-zinc-300 mx-auto" />
-                <h3 className="text-2xl font-bold text-zinc-900">Clinical Report</h3>
-                <p className="text-zinc-500 max-w-md">
-                  Detailed clinical report generation coming soon. This section will compile patient data and provide comprehensive analysis.
-                </p>
-              </div>
+            <div className="bg-white rounded-[2.5rem] p-4 shadow-xl shadow-zinc-200/50">
+              <ClinicalReport />
             </div>
           </Tabs.Content>
         </Tabs.Root>
