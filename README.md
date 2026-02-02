@@ -5,6 +5,13 @@ An interactive Clinical Vital Signs Simulation Component built for doctors to ed
 ![Medical Disclaimer](https://img.shields.io/badge/⚠️-Medical%20Disclaimer-red)
 **MEDICAL DISCLAIMER:** This is an educational tool only. It should not be used for actual medical diagnosis or treatment. Always consult with qualified healthcare professionals for medical advice.
 
+#Demo
+
+
+
+https://github.com/user-attachments/assets/d4dffc81-98c8-40c0-87de-e539da8f5ca0
+
+
 ## ✨ Features
 
 - **Interactive Vital Signs Simulator**: Real-time visualization of how Temperature, SpO2, Heart Rate, Respiratory Rate, Cough, and Chest Retractions correlate with health conditions
