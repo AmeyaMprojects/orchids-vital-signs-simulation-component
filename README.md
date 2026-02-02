@@ -1,8 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Clinical Vital Signs Simulation Component
 
-## Getting Started
+An interactive Clinical Vital Signs Simulation Component built for doctors to educate patients. This tool allows healthcare professionals to visualize how different vital sign combinations relate to various health conditions, making complex medical concepts accessible and understandable for patients.
 
-First, run the development server:
+![Medical Disclaimer](https://img.shields.io/badge/⚠️-Medical%20Disclaimer-red)
+**MEDICAL DISCLAIMER:** This is an educational tool only. It should not be used for actual medical diagnosis or treatment. Always consult with qualified healthcare professionals for medical advice.
+
+## ✨ Features
+
+- **Interactive Vital Signs Simulator**: Real-time visualization of how Temperature, SpO2, Heart Rate, Respiratory Rate, Cough, and Chest Retractions correlate with health conditions
+- **X-Ray Analyzer**: Upload and analyze chest X-rays with AI-powered insights
+- **Gated Logic Visualization**: Step-by-step clinical decision-making process
+- **Clinical Report Generation**: Comprehensive reports based on vital signs and imaging
+- **Waterfall Chart**: Visual representation of diagnostic priorities and evidence triangulation
+- **Tablet-Friendly UI**: Clean, modern interface optimized for bedside consultations
+- **Deterministic Logic**: Hard-coded clinical ranges for safety and predictability
+
+## 🚀 Tech Stack
+
+### Frontend
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Components**: Radix UI (Slider, Tabs, Dialog, etc.)
+- **Icons**: Lucide React, Heroicons, Tabler Icons
+- **Animation**: Framer Motion
+- **3D Visualization**: React Three Fiber & Drei
+
+### Backend
+- **Python**: Flask API for ML model inference
+- **ML**: TensorFlow/Keras for pneumonia detection model
+- **File Handling**: Python for X-ray image processing
+
+## 📋 Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js** 18.0 or later ([Download](https://nodejs.org/))
+- **npm** or **yarn** or **pnpm**
+- **Python** 3.8+ (for backend ML models)
+- **pip** (Python package manager)
+
+## 🛠️ Installation & Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repository-url>
+cd orchids-vital-signs-simulation-component
+```
+
+### 2. Install Frontend Dependencies
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+### 3. Install Backend Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Environment Setup
+
+Create a `.env.local` file in the root directory (if needed for API keys or configuration):
+
+```env
+# Add any environment variables here
+# NEXT_PUBLIC_API_URL=http://localhost:3000
+```
+
+### 5. Run the Development Server
+
+**Frontend:**
 
 ```bash
 npm run dev
@@ -10,27 +84,178 @@ npm run dev
 yarn dev
 # or
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Backend (Python API):**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+python api/app.py
+```
 
-## Learn More
+The Flask API will typically run on `http://localhost:5000`.
 
-To learn more about Next.js, take a look at the following resources:
+## 📁 Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+├── api/
+│   └── app.py                    # Flask API server
+├── models/
+│   ├── pneumonia_binary_model.h5 # Pre-trained ML model
+│   ├── vitals_api.py             # Vital signs analysis logic
+│   ├── xray_api.py               # X-ray analysis logic
+│   └── ...                       # Other model utilities
+├── public/                       # Static assets
+├── src/
+│   ├── app/
+│   │   ├── api/                  # Next.js API routes
+│   │   ├── globals.css           # Global styles
+│   │   ├── layout.tsx            # Root layout
+│   │   └── page.tsx              # Home page
+│   ├── components/
+│   │   ├── VitalSignsSimulator.tsx  # Main simulation component
+│   │   ├── XrayAnalyzer.tsx         # X-ray upload & analysis
+│   │   ├── GatedLogic.tsx           # Clinical decision flow
+│   │   ├── ClinicalReport.tsx       # Report generation
+│   │   ├── WaterfallChart.tsx       # Diagnostic visualization
+│   │   └── ui/                      # Reusable UI components
+│   ├── contexts/
+│   │   ├── VitalsContext.tsx     # Vital signs state management
+│   │   └── XrayContext.tsx       # X-ray state management
+│   ├── hooks/                    # Custom React hooks
+│   └── lib/
+│       └── utils.ts              # Utility functions
+├── uploads/                      # X-ray image uploads
+├── package.json
+├── tsconfig.json
+└── tailwind.config.ts
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🎯 Usage
 
-## Deploy on Vercel
+### Vital Signs Simulator
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Navigate to the **Vital Signs** tab
+2. Adjust the sliders for different vital signs:
+   - Temperature (°F)
+   - SpO2 (%)
+   - Heart Rate (bpm)
+   - Respiratory Rate (breaths/min)
+   - Cough Severity
+   - Chest Retractions
+3. Observe real-time condition assessment (Normal vs. Pneumonia)
+4. Use visual cues and animations to explain to patients
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### X-Ray Analyzer
+
+1. Navigate to the **X-Ray** tab
+2. Upload a chest X-ray image
+3. View AI-powered analysis results
+4. Review confidence scores and clinical insights
+
+### Clinical Report
+
+1. Navigate to the **Report** tab
+2. View comprehensive analysis combining:
+   - Vital signs assessment
+   - X-ray findings
+   - Evidence triangulation
+   - Diagnostic priorities
+3. Generate detailed reports for patient records
+
+## 🧪 Development
+
+### Available Scripts
+
+```bash
+# Development server
+npm run dev
+
+# Production build
+npm run build
+
+# Start production server
+npm start
+
+# Lint code
+npm run lint
+```
+
+### Component Development
+
+All main components are located in `src/components/`:
+
+- Create new components following the existing patterns
+- Use TypeScript for type safety
+- Leverage Radix UI primitives for accessibility
+- Style with Tailwind CSS utility classes
+
+### Adding New Features
+
+1. Define component logic in `src/components/`
+2. Manage state with Context API (`src/contexts/`)
+3. Add API routes in `src/app/api/` if needed
+4. Update Python models in `models/` for ML features
+
+## 🎨 Customization
+
+### Styling
+
+- **Global Styles**: Edit `src/app/globals.css`
+- **Tailwind Config**: Modify `tailwind.config.ts`
+- **Component Styles**: Use Tailwind utility classes
+
+### Clinical Ranges
+
+Hard-coded ranges are defined in the simulation component for safety. Modify with caution:
+
+```typescript
+// src/components/VitalSignsSimulator.tsx
+const NORMAL_RANGES = {
+  temperature: { min: 97.0, max: 99.5 },
+  spO2: { min: 95, max: 100 },
+  // ...
+};
+```
+
+## 🔒 Medical Disclaimer
+
+**IMPORTANT**: This application is designed strictly for educational purposes to help healthcare professionals explain medical concepts to patients. It is NOT intended for:
+
+- Medical diagnosis
+- Treatment decisions
+- Clinical assessment
+- Replacing professional medical judgment
+
+Always consult qualified healthcare professionals for medical advice, diagnosis, and treatment.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is private and proprietary. All rights reserved.
+
+## 👨‍⚕️ Built For
+
+Healthcare professionals who want to:
+- Improve patient education
+- Visualize complex medical concepts
+- Enhance doctor-patient communication
+- Demonstrate clinical decision-making processes
+
+## 📞 Support
+
+For questions or issues, please open an issue in the repository or contact the development team.
+
+---
+
+**Made with ❤️ for better patient education**
